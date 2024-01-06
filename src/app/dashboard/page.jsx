@@ -4,13 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { Doughnut, Bar, Line } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto';
 import { registerables } from 'chart.js';
-import DynamicData from './Components/DynamicData'
-import { Layout, Typography, Card, Row, Col, Select, Table, Divider, Button } from 'antd';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Delta from '../app/Images/DeltaInfosoft.png'
-import Banas from '../app/Images/Banas_Logo1.png'
-
+import DynamicData from '../Components/DynamicData'
+import { Layout, Typography, Card, Row, Col, Select, Table, Divider } from 'antd';
+import Year from '../year-dashboard/page';
 
 // Register necessary Chart.js components
 Chart.register(...registerables);
@@ -19,30 +15,27 @@ const { Header, Content } = Layout;
 const { Title } = Typography;
 const { Option } = Select;
 const Page = () => {
-  const router = useRouter();
   const [salesData, setSalesData] = useState([]);
   const [selectedYear, setSelectedYear] = useState('2022');
-  const [selectedMonth, setSelectedMonth] = useState('ALL');
+  const [selectedMonth, setSelectedMonth] = useState('AUG');
   const [flopCategory, setFlowCategory] = useState(null);
-  const [selectedStores, setSelectedStores] = useState([]); // Change to an array for multi-select
-  const [selectedStoreType, setSelectedStoreType] = useState('ALL');
+  const [selectedStore, setSelectedStore] = useState('ALL'); // Updated default value for selectedStore
   const [topCategory, setTopCategory] = useState(null);
   const [totalSales, setTotalSales] = useState(0);
+  
 
   useEffect(() => {
     updateDynamicInsights();
-  }, [salesData, selectedYear, selectedMonth, selectedStores, selectedStoreType]);
+  }, [salesData, selectedYear, selectedMonth, selectedStore]);
 
   const updateDynamicInsights = () => {
     const filteredData = salesData?.filter(
       (item) =>
         item.Yr === selectedYear &&
         (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
-        (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-        (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
+        (selectedStore === 'ALL' || item.StoreName === selectedStore)
     );
 
-    if (filteredData?.length == 0) setTotalSales(0)
     if (filteredData && filteredData.length > 0) {
       const groupedData = filteredData.reduce((acc, item) => {
         acc[item.LOB] = (acc[item.LOB] || 0) + item.salesAmt;
@@ -51,12 +44,12 @@ const Page = () => {
 
       const categories = Object.keys(groupedData);
       const totalSalesAmount = categories.reduce((total, category) => total + groupedData[category], 0);
-
       setTotalSales(totalSalesAmount);
 
+      // Find the top-performing category
       const topCategory = categories.reduce((top, category) => (groupedData[category] > groupedData[top] ? category : top), categories[0]);
       const flopCategory = categories.reduce((top, category) => (groupedData[category] < groupedData[top] ? category : top), categories[0]);
-      setFlowCategory(flopCategory);
+      setFlowCategory(flopCategory)
       setTopCategory(topCategory);
     }
   };
@@ -87,11 +80,6 @@ const Page = () => {
       dataIndex: 'salesAmt',
       key: 'salesAmt',
     },
-    {
-      title: 'Store Type',
-      dataIndex: 'StoreType',
-      key: 'StoreType',
-    },
   ];
 
   useEffect(() => {
@@ -100,7 +88,8 @@ const Page = () => {
 
   const fetchData = async () => {
     try {
-      let url = '/api/getData';
+      let url = 'http://localhost:3000/api/getData';
+    
 
       const response = await axios.get(url);
       setSalesData(response.data.data);
@@ -114,8 +103,7 @@ const Page = () => {
       (item) =>
         item.Yr === selectedYear &&
         (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
-        (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-        (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
+        (selectedStore === 'ALL' || item.StoreName === selectedStore)
     );
 
     if (!filteredData || filteredData.length === 0) {
@@ -155,8 +143,7 @@ const Page = () => {
     (item) =>
       item.Yr === selectedYear &&
       (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
-      (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-      (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
+      (selectedStore === 'ALL' || item.StoreName === selectedStore)
   );
 
   const transformDataForBarChart = () => {
@@ -164,8 +151,7 @@ const Page = () => {
       (item) =>
         item.Yr === selectedYear &&
         (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
-        (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-        (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
+        (selectedStore === 'ALL' || item.StoreName === selectedStore)
     );
 
     if (!filteredData || filteredData.length === 0) {
@@ -197,8 +183,7 @@ const Page = () => {
       (item) =>
         item.Yr === selectedYear &&
         (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
-        (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-        (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
+        (selectedStore === 'ALL' || item.StoreName === selectedStore)
     );
 
     if (!filteredData || filteredData.length === 0) {
@@ -227,40 +212,6 @@ const Page = () => {
     };
   };
 
-  const transformDataForStoresBarChart = () => {
-    const filteredData = salesData?.filter(
-      (item) =>
-        item.Yr === selectedYear &&
-        (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
-        (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-        (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
-    );
-
-    const storeData = filteredData?.reduce((acc, item) => {
-      acc[item.StoreName] = (acc[item.StoreName] || 0) + item.salesAmt;
-      return acc;
-    }, {});
-
-    if (!storeData || Object.keys(storeData).length === 0) {
-      return { labels: [], datasets: [] };
-    }
-
-    const labels = Object.keys(storeData);
-    const data = Object.values(storeData);
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Total Sales',
-          data,
-          backgroundColor: 'rgba(75, 192, 192, 0.7)',
-        },
-      ],
-    };
-  };
-
-
   const handleYearChange = (value) => {
     setSelectedYear(value);
   };
@@ -270,105 +221,49 @@ const Page = () => {
   };
 
   const handleStoreChange = (value) => {
-    setSelectedStores(value);
-  };
-
-  const handleStoreTypeChange = (value) => {
-    setSelectedStoreType(value);
+    setSelectedStore(value);
   };
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      {console.log("PIKACHUUU", process.env.NEXT_PUBLIC_DB_SERVER)}
-      <Header style={{ background: '#fff', padding: '16px', height: "100px" }}>
-      <div style={{ background: 'linear-gradient(to right, #56ab2f, #a8e063)', padding: '16px' }}>
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-    <div>
-      <Image src={Delta} alt="Delta" width={150} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
-    </div>
-    <Title level={2} style={{ margin: 0, color: '#fff', textAlign: "center",  }}>
-      Banas Dairy Dashboard
-    </Title>
-    <div>
-      <Image src={Banas} alt="Banas" width={150} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
-    </div>
-  </div>
-</div>
-
-        <Divider />
+      <Header style={{ background: '#fff', padding: '16px' }}>
+        <Title level={2} style={{ margin: 0, color: '#1890ff', textAlign : "center" }}>
+          Banas Dairy Dashboard
+        </Title>
+        <Divider/>
         <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Select defaultValue="2022" style={{ width: 120 }} onChange={handleYearChange}>
-              {Array.from(new Set(salesData?.map((item) => item.Yr)))
-                .sort((a, b) => parseInt(a) - parseInt(b)) // Sort the years in ascending order
-                .map((year) => (
-                  <Option key={year} value={year}>
-                    {year}
-                  </Option>
-                ))}
+              {Array.from(new Set(salesData?.map((item) => item.Yr))).map((year) => (
+                <Option key={year} value={year}>
+                  {year}
+                </Option>
+              ))}
             </Select>
           </div>
-
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Select defaultValue="ALL" style={{ width: 120 }} onChange={handleMonthChange}>
+            <Select defaultValue="AUG" style={{ width: 120 }} onChange={handleMonthChange}>
               <Option value="ALL">All Months</Option>
-              {[
-                'January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'
-              ].map((month) => (
+              {Array.from(new Set(salesData?.map((item) => item.MonthName.trim()))).map((month) => (
                 <Option key={month} value={month}>
                   {month}
                 </Option>
               ))}
             </Select>
           </div>
-
-
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Select defaultValue="ALL" style={{ width: 120, minWidth: '140px' }} onChange={handleStoreTypeChange}>
-              <Option value="ALL">All Store Types</Option>
-              {Array.from(new Set(salesData?.map((item) => item.StoreType))).map((storeType) => (
-                <Option key={storeType} value={storeType}>
-                  {console.log("PIKA", storeType)}
-                  {storeType}
+            <Select defaultValue="ALL" style={{ width: 120 }} onChange={handleStoreChange}>
+              <Option value="ALL">All Stores</Option>
+              {Array.from(new Set(salesData?.map((item) => item.StoreName))).map((store) => (
+                <Option key={store} value={store}>
+                  {store}
                 </Option>
               ))}
             </Select>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Select
-              mode="multiple"
-              placeholder="All Stores"
-              style={{ width: '100%', minWidth: '120px' }}
-              onChange={handleStoreChange}
-              value={selectedStores}
-            >
-              {Array.from(new Set(salesData?.map((item) => `${item.StoreName}_${item.StoreType}`)))
-                .filter((combinedKey) => {
-                  const [storeName, storeType] = combinedKey.split('_');
-                  return selectedStoreType === 'ALL' || selectedStoreType === storeType;
-                })
-                .map((combinedKey) => {
-                  const [storeName, storeType] = combinedKey.split('_');
-                  return (
-                    <Option key={storeName} value={storeName} data-store-type={storeType}>
-                      {storeName}
-                    </Option>
-                  );
-                })}
-            </Select>
-          </div>
-          <Button ml={4} onClick={() => router.push('/year-dashboard')}>Year Wise Data</Button>
         </div>
       </Header>
-      <Content style={{ padding: '24px', minHeight: 'calc(100vh - 64px)', marginTop: '8%' }}>
-        <Row gutter={16} style={{ marginBottom: '20px' }}>
-          <Col span={24}>
-            <Card title="Sales Data for Stores" style={{ width: '100%' }}>
-              <Bar data={transformDataForStoresBarChart()} />
-            </Card>
-          </Col>
-        </Row>
+      <Content style={{ padding: '24px', minHeight: 'calc(100vh - 64px)', marginTop: '5%' }}>
         <Row gutter={16}>
           <Col span={8}>
             <Card title="Doughnut Chart" style={{ height: '500px' }}>
@@ -388,12 +283,13 @@ const Page = () => {
         </Row>
         <Row gutter={16} style={{ marginTop: '20px', width: '30%' }}>
           <Col span={24}>
-            {salesData && <DynamicData
-              totalSales={totalSales}
-              topCategory={topCategory}
-              flopCategory={flopCategory}
-              filteredData={filteredData}
-            />}
+    <DynamicData
+        totalSales={totalSales}
+        topCategory={topCategory}
+        flopCategory={flopCategory}
+        filteredData={filteredData}
+      />
+
           </Col>
         </Row>
         <Row gutter={16} style={{ marginTop: '10px' }}>
@@ -403,7 +299,14 @@ const Page = () => {
             </Card>
           </Col>
         </Row>
-        <Divider />
+        <Divider/>
+        <Row gutter={16} style={{ marginTop: '10px' }}>
+          <Col span={24}>
+            <Card title="Year Wise">
+              <Year/>
+            </Card>
+          </Col>
+        </Row>
       </Content>
     </Layout>
   );
