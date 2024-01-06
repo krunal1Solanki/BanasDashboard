@@ -5,6 +5,7 @@
 /.pnp
 /.env
 ./.env
+.env
 .pnp.js
 .yarn/install-state.gz
 
