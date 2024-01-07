@@ -32,7 +32,7 @@ const Year = () => {
 
   const fetchData = async () => {
     try {
-      let url = 'http://localhost:3000/api/getData';
+      let url = '/api/getData';
       const response = await axios.get(url);
       setSalesData(response.data.data);
       setFilteredSalesData(response.data.data); // Initialize filtered data with all data
