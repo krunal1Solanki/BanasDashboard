@@ -371,18 +371,22 @@ const Page = () => {
         </Row>
         <Row gutter={16}>
           <Col span={8}>
-            <Card title="Doughnut Chart" style={{ height: '500px' }}>
+            <Card title="Doughnut Chart" style={{ height: '100%' }}>
               <Doughnut data={transformDataForDoughnutChart()} />
             </Card>
           </Col>
           <Col span={8}>
-            <Card title="Bar Chart" style={{ height: '500px' }}>
+            <Card title="Bar Chart" style={{ height: '100%',  }}>
+              <div style={{display : "flex", alignContent  : 'center', justifyContent: 'center', marginTop:  '15%'}}>
               <Bar data={transformDataForBarChart()} />
+              </div>
             </Card>
           </Col>
           <Col span={8}>
-            <Card title="Line Chart" style={{ height: '500px' }}>
+            <Card title="Line Chart" style={{ height: '100%' }}>
+            <div style={{display : "flex", alignContent  : 'center', justifyContent: 'center', marginTop:  '15%'}}>
               <Line data={transformDataForLineChart()} />
+              </div>
             </Card>
           </Col>
         </Row>
