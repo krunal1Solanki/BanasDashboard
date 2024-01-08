@@ -257,7 +257,7 @@ const Year = () => {
       <Image src={Delta} alt="Delta" width={150} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
     </div>
     <Title level={2} style={{ margin: 0, color: '#fff', textAlign: "center",  }}>
-      Umang Mall
+      Umang Mall Dashboard
     </Title>
     <div>
       <Image src={Banas} alt="Banas" width={150} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
