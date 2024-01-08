@@ -21,7 +21,7 @@ const { Option } = Select;
 const Page = () => {
   const router = useRouter();
   const [salesData, setSalesData] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('2022');
+  const [selectedYear, setSelectedYear] = useState('2024');
   const [selectedMonth, setSelectedMonth] = useState('ALL');
   const [flopCategory, setFlowCategory] = useState(null);
   const [selectedStores, setSelectedStores] = useState([]); // Change to an array for multi-select
@@ -171,31 +171,45 @@ const Page = () => {
         (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
         (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
     );
-
+  
     if (!filteredData || filteredData.length === 0) {
       return { labels: [], datasets: [] };
     }
-
+  
     const groupedData = filteredData.reduce((acc, item) => {
       acc[item.LOB] = (acc[item.LOB] || 0) + item.salesAmt;
       return acc;
     }, {});
-
+  
     const labels = Object.keys(groupedData);
     const data = Object.values(groupedData);
-
+  
     return {
       labels,
       datasets: [
         {
           label: 'Sales Amount',
           data,
-          backgroundColor: 'rgba(75, 192, 192, 0.7)',
+          backgroundColor: [
+            'rgba(255, 99, 132, 0.7)',
+            'rgba(255, 159, 64, 0.7)',
+            'rgba(255, 205, 86, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(54, 162, 235, 0.7)',
+            'rgba(153, 102, 255, 0.7)',
+            'rgba(201, 203, 207, 0.7)',
+            'rgba(255, 99, 132, 0.7)',
+            'rgba(255, 205, 86, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(128, 0, 128, 0.7)', // Purple
+            'rgba(0, 128, 0, 0.7)',  // Green
+            'rgba(255, 140, 0, 0.7)',  // DarkOrange
+          ],
         },
       ],
     };
   };
-
+  
   const transformDataForLineChart = () => {
     const filteredData = salesData?.filter(
       (item) =>
