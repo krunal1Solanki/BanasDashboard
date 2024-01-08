@@ -287,7 +287,7 @@ const Page = () => {
       <Image src={Delta} alt="Delta" width={150} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
     </div>
     <Title level={2} style={{ margin: 0, color: '#fff', textAlign: "center",  }}>
-      Banas Dairy Dashboard
+      Umang Mall
     </Title>
     <div>
       <Image src={Banas} alt="Banas" width={150} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
@@ -300,7 +300,7 @@ const Page = () => {
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Select defaultValue="2022" style={{ width: 120 }} onChange={handleYearChange}>
               {Array.from(new Set(salesData?.map((item) => item.Yr)))
-                .sort((a, b) => parseInt(a) - parseInt(b)) // Sort the years in ascending order
+                .sort((a, b) =>  parseInt(b) - parseInt(a)) // Sort the years in ascending order
                 .map((year) => (
                   <Option key={year} value={year}>
                     {year}
