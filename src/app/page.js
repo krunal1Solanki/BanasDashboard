@@ -316,7 +316,7 @@ const Page = () => {
         <Divider />
         <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Select defaultValue="2022" style={{ width: 120 }} onChange={handleYearChange}>
+            <Select defaultValue="2024" style={{ width: 120 }} onChange={handleYearChange}>
               {Array.from(new Set(salesData?.map((item) => item.Yr)))
                 .sort((a, b) =>  parseInt(b) - parseInt(a)) // Sort the years in ascending order
                 .map((year) => (
