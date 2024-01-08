@@ -257,7 +257,7 @@ const Year = () => {
       <Image src={Delta} alt="Delta" width={150} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
     </div>
     <Title level={2} style={{ margin: 0, color: '#fff', textAlign: "center",  }}>
-      Banas Dairy Dashboard
+      Umang Mall
     </Title>
     <div>
       <Image src={Banas} alt="Banas" width={150} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
@@ -276,7 +276,7 @@ const Year = () => {
               <Option value={'ALL'}>All Years</Option>
               {salesData &&
                 Array.from(new Set(filteredSalesData.map(item => item.Yr)))
-                  .sort((a, b) => parseInt(a) - parseInt(b))
+                  .sort((a, b) =>  parseInt(b) - parseInt(a))
                   .map(year => (
                     <Option key={year} value={year}>
                       {year}
