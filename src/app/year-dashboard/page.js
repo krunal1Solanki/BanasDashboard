@@ -13,6 +13,7 @@ const { Option } = Select;
 const { Header, Content } = Layout;
 const { Title } = Typography;
 
+
 const Year = () => {
   const router = useRouter();
   const [salesData, setSalesData] = useState([]);
@@ -30,6 +31,9 @@ const Year = () => {
     applyStoreTypeFilter();
   }, [selectedStoreType]);
 
+  const getYearLabel = (year) => {
+    return year + `-${(((+year + 1)+"").substring(2))}`;
+  } 
   const fetchData = async () => {
     try {
       let url = '/api/getData';
@@ -58,28 +62,34 @@ const Year = () => {
     setSelectedStoreType(value);
   };
 
-  const calculateCumulativeSales = (filteredData) => {
+  const calculateCumulativeSales = (filteredData, year, nextYear) => {
+    console.log("PIKA FI", filteredData)
     const cumulativeSales = {};
     const validMonths = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+        'APR', 'MAY', 'JUN',
+        'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR',
     ];
 
     validMonths.forEach(month => {
-      cumulativeSales[month] = {};
+        cumulativeSales[month] = {};
     });
 
     filteredData.forEach(item => {
-      const month = item.MonthName.trim().substring(0, 3).toUpperCase();
-      const salesAmt = parseFloat(item.salesAmt);
+        const month = item.MonthName.trim().substring(0, 3).toUpperCase();
+        const salesAmt = parseFloat(item.salesAmt);
+        const itemYear = parseInt(item.Yr);
 
-      if (!isNaN(salesAmt) && validMonths.includes(month)) {
-        cumulativeSales[month][item.StoreName] = (cumulativeSales[month][item.StoreName] || 0) + salesAmt;
-      }
+        if (!isNaN(salesAmt) && validMonths.includes(month)) {
+            if ((itemYear === year && validMonths.slice(0, 9).includes(month)) ||
+                (itemYear === nextYear && validMonths.slice(9).includes(month))) {
+                cumulativeSales[month][item.StoreName] = (cumulativeSales[month][item.StoreName] || 0) + salesAmt;
+            }
+        }
     });
 
     return cumulativeSales;
-  };
+};
+
 
   const addTotalRow = (dataSource) => {
     const storeNames = Object.keys(dataSource[0]).filter(key => key !== 'month');
@@ -115,8 +125,8 @@ const Year = () => {
 
   const getColumns = () => {
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+      'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR',
     ];
 
     const columns = [
@@ -158,13 +168,16 @@ const Year = () => {
   };
 
   const getDataSourceForYear = (year) => {
+    console.log("PIKA", year, )
+    const nextYear = parseInt(year) + 1;
+    
     const storeNames = Array.from(new Set(filteredSalesData.map(item => item.StoreName)));
-    const filteredData = filteredSalesData.filter(item => item.Yr === year);
-    const cumulativeSales = calculateCumulativeSales(filteredData);
+    const filteredData = filteredSalesData.filter(item => parseInt(item.Yr) === year || parseInt(item.Yr) === nextYear);
+    const cumulativeSales = calculateCumulativeSales(filteredData, year, nextYear);
 
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+       'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR',
     ];
 
     const dataSource = storeNames.map(store => {
@@ -213,7 +226,7 @@ const Year = () => {
         <div style={containerStyle}>
           {Array.from(new Set(filteredSalesData?.map(item => item.Yr))).sort((a, b) => parseInt(a) - parseInt(b)).map(year => (
             <div key={year} style={tableContainerStyle}>
-              <Title level={3}>{year}</Title>
+              <Title level={3}>{getYearLabel(year)}</Title>
               <Table
                 dataSource={getDataSourceForYear(year)}
                 columns={getColumns()}
@@ -229,7 +242,7 @@ const Year = () => {
     } else {
       return (
         <div style={containerStyle}>
-          <Title level={4}>{selectedYear}</Title>
+          <Title level={4}>{getYearLabel(selectedYear)}</Title>
           <div style={tableContainerStyle}>
             <Table
               dataSource={getDataSourceForYear(selectedYear)}
@@ -273,13 +286,13 @@ const Year = () => {
               onChange={handleYearChange}
               value={selectedYear || undefined}
             >
-              <Option value={'ALL'}>All Years</Option>
+              <Option value={'ALL'}>All Financial Years</Option>
               {salesData &&
                 Array.from(new Set(filteredSalesData.map(item => item.Yr)))
                   .sort((a, b) =>  parseInt(b) - parseInt(a))
                   .map(year => (
                     <Option key={year} value={year}>
-                      {year}
+                      {getYearLabel(year)}
                     </Option>
                   ))}
             </Select>
