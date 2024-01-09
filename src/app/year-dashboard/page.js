@@ -134,7 +134,7 @@ const Year = () => {
         title: 'Store',
         dataIndex: 'store',
         key: 'store',
-        sorter: (a, b) => a.store.localeCompare(b.store),
+        sorter: (a, b) => a.store == 'Total' || b.store == 'Total' ? 0 :  a.store.localeCompare(b.store),
         sortDirections: ['ascend', 'descend'],
       },
       ...months.map(month => ({
@@ -142,7 +142,7 @@ const Year = () => {
         dataIndex: month,
         key: month,
         sorter: (a, b) => {
-          if (a.store === 'Total' || b.store === 'Total') {
+          if (a.store == 'Total' || b.store == 'Total') {
             return 0; // "Total" row should stay in its position
           }
           return parseFloat(a[month]) - parseFloat(b[month]);
