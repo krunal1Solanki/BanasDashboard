@@ -266,6 +266,31 @@ const Page = () => {
       ],
     };
   };
+  const getCurrentFinancialYear = () => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    // Financial year starts from April
+    const startYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+    const endYear = startYear + 1;
+
+    return `${startYear}-${endYear}`;
+  };
+
+  // Function to render year options
+  const renderYearOptions = () => {
+    const currentFinancialYear = getCurrentFinancialYear();
+
+    return Array.from(new Set(salesData?.map((item) => item.Yr)))
+      .filter((year) => year <= currentFinancialYear)  // Only show years up to the current financial year
+      .sort((a, b) => parseInt(b) - parseInt(a))
+      .map((year) => (
+        <Option key={year} value={year}>
+          {getYearLabel(year)}
+        </Option>
+      ));
+  };
 
   const transformDataForStoresBarChart = () => {
 
@@ -320,13 +345,7 @@ const Page = () => {
         <div style={{ display: 'flex', gap: '10px', marginLeft: '2%' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Select defaultValue="2023" style={{ width: 120 }} onChange={handleYearChange}>
-              {Array.from(new Set(salesData?.map((item) => item.Yr)))
-                .sort((a, b) => parseInt(b) - parseInt(a)) // Sort the years in ascending order
-                .map((year) => (
-                  <Option key={year} value={year}>
-                    {getYearLabel(year)}
-                  </Option>
-                ))}
+            {renderYearOptions()}
             </Select>
           </div>
 

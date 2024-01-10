@@ -23,6 +23,7 @@ const Year = () => {
   const [selectedYear, setSelectedYear] = useState('ALL');
   const [selectedStoreType, setSelectedStoreType] = useState('ALL');
   const [showBarGraph, setShowBarGraph] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedStoreNames, setSelectedStoreNames] = useState([]);
 
   useEffect(() => {
@@ -35,6 +36,9 @@ const Year = () => {
     );
   }, [selectedStoreNames, selectedStoreType]);
   
+  useEffect(()=> {
+    if(selectedYear == 'ALL') setShowBarGraph(false)
+  }, [selectedYear])
 
   useEffect(() => {
     fetchData();
@@ -195,7 +199,6 @@ const Year = () => {
   const renderTableRows = () => {
 
 
-
     if (selectedYear === 'ALL') {
       return (
         <div style={containerStyle}>
@@ -334,6 +337,23 @@ const Year = () => {
     minWidth: '800px',
   };
 
+  const renderYearOptions = () => {
+    return (
+      salesData &&
+      Array.from(new Set(filteredSalesData.map((item) => item.Yr)))
+        .filter((year) => {
+          const financialYearStart = new Date(`${year}-04-01`);
+          return currentDate >= financialYearStart;
+        })
+        .sort((a, b) => parseInt(b) - parseInt(a))
+        .map((year) => (
+          <Option key={year} value={year}>
+            {getYearLabel(year)}
+          </Option>
+        ))
+    );
+  };
+
   return (
     <Layout className="dashboard-layout">
       <HeaderBanas />
@@ -346,14 +366,7 @@ const Year = () => {
               value={selectedYear || undefined}
             >
               <Option value={'ALL'}>All Financial Years</Option>
-              {salesData &&
-                Array.from(new Set(filteredSalesData.map(item => item.Yr)))
-                  .sort((a, b) => parseInt(b) - parseInt(a))
-                  .map(year => (
-                    <Option key={year} value={year}>
-                      {getYearLabel(year)}
-                    </Option>
-                  ))}
+              {renderYearOptions()}
             </Select>
 
             <Select
