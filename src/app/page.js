@@ -127,19 +127,20 @@ const Page = () => {
   };
 
   const transformDataForDoughnutChart = () => {
-
     if (!filteredData || filteredData.length === 0) {
       return { labels: [], datasets: [] };
     }
-
+  
     const groupedData = filteredData.reduce((acc, item) => {
-      acc[item.LOB] = (acc[item.LOB] || 0) + item.salesAmt;
+      const lob = item.LOB;
+      const salesAmtInLacs = (acc[lob] || 0) + item.salesAmt / 100000; // Divide by 100,000 to convert to lacs
+      acc[lob] = salesAmtInLacs;
       return acc;
     }, {});
-
+  
     const labels = Object.keys(groupedData);
     const data = Object.values(groupedData);
-
+  
     return {
       labels,
       datasets: [
@@ -170,6 +171,7 @@ const Page = () => {
       ],
     };
   };
+  
   const handleExportToExcel = () => {
     if (!filteredData || filteredData.length === 0) {
       console.warn('No data to export.');
@@ -197,27 +199,26 @@ const Page = () => {
     const fileName = `SalesData_${selectedYear}_${selectedMonth}_${selectedStoreType}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
-
   const transformDataForBarChart = () => {
-
-
     if (!filteredData || filteredData.length === 0) {
       return { labels: [], datasets: [] };
     }
-
+  
     const groupedData = filteredData.reduce((acc, item) => {
-      acc[item.LOB] = (acc[item.LOB] || 0) + item.salesAmt;
+      const mainCategory = item.MainCategory;
+      const salesAmtInLacs = (acc[mainCategory] || 0) + item.salesAmt / 100000; // Divide by 100,000 to convert to lacs
+      acc[mainCategory] = salesAmtInLacs;
       return acc;
     }, {});
-
+  
     const labels = Object.keys(groupedData);
     const data = Object.values(groupedData);
-
+  
     return {
       labels,
       datasets: [
         {
-          label: 'Sales Amount',
+          label: 'Sales Amount (in lacs)',
           data,
           backgroundColor: [
             'rgba(255, 99, 132, 0.7)',
@@ -238,6 +239,7 @@ const Page = () => {
       ],
     };
   };
+  
 
   const transformDataForLineChart = () => {
 
