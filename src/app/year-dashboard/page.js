@@ -254,41 +254,56 @@ const Year = () => {
   }
 
   const getDataSourceForYear = (year) => {
-
     const nextYear = (+year + 1) + "";
     const storeNames = Array.from(new Set(filteredSalesData.map(item => item.StoreName)));
     const filteredData = filteredSalesData.filter(item => item.Yr == year || item.Yr == nextYear);
-
+  
     const cumulativeSales = calculateCumulativeSales(filteredData, year, nextYear);
-
+  
     const months = [
       'APR', 'MAY', 'JUN',
       'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR',
     ];
-
+  
     const dataSource = storeNames.map(store => {
       const dataRow = { store };
+      let hasNonZeroSales = false;
+  
       months.forEach(month => {
         const salesValue = cumulativeSales[month][store] ? cumulativeSales[month][store] : 0;
         dataRow[month] = salesValue.toFixed(2);
+  
+        // Check if there is non-zero sales for any month
+        if (parseFloat(dataRow[month]) !== 0) {
+          hasNonZeroSales = true;
+        }
       });
-      return dataRow;
+  
+      // Only include the row if there is non-zero sales for any month
+      if (hasNonZeroSales) {
+        return dataRow;
+      } else {
+        return null; // Discard rows with zero data in every sales
+      }
     });
-
+  
     const totalRow = {
       store: 'Total',
     };
-
+  
     months.forEach(month => {
-      const totalSalesForMonth = dataSource.reduce((total, item) => total + parseFloat(item[month]), 0);
+      // Filter out null items before calling reduce
+      const nonNullItems = dataSource.filter(item => item !== null);
+      const totalSalesForMonth = nonNullItems.reduce((total, item) => total + parseFloat(item[month]), 0);
       totalRow[month] = totalSalesForMonth.toFixed(2);
     });
-
-    const dataSourceWithoutTotal = dataSource.filter(item => item.store !== 'Total');
-
+  
+    // Filter out null items before calling addTotalRow
+    const dataSourceWithoutTotal = dataSource.filter(item => item !== null);
+    
     return addTotalRow([...dataSourceWithoutTotal, totalRow]);
   };
-
+  
   const renderSalesBarGraph = (salesData, selectedYear) => {
     const nextYear = (+selectedYear + 1) + "";
     const validMonths = [
