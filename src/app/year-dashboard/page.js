@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { Layout, Select, Space, Typography, Table, Button } from 'antd';
+import * as XLSX from 'xlsx';
 import axios from 'axios';
 import { Chart } from 'chart.js/auto';
 import { Bar } from 'react-chartjs-2';
@@ -9,6 +10,7 @@ import HeaderBanas from '../Components/HeaderBanas';
 import { registerables } from 'chart.js';
 import { SwapOutlined, TableOutlined, BarChartOutlined } from '@ant-design/icons';
 import './Year.css';
+
 
 Chart.register(...registerables);
 
@@ -58,6 +60,24 @@ const Year = () => {
       console.error('Error fetching data:', error);
     }
   };
+
+  const exportToExcel = () => {
+    // Filtered data for export
+    const exportData = getDataSourceForYear(selectedYear);
+  
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+  
+    // Convert data to worksheet
+    const ws = XLSX.utils.json_to_sheet(exportData);
+  
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'SalesData');
+  
+    // Save workbook to file
+    XLSX.writeFile(wb, `SalesData_${getYearLabel(selectedYear)}.xlsx`);
+  };
+  
 
   const applyStoreTypeFilter = () => {
     if (selectedStoreType === 'ALL') {
@@ -403,6 +423,7 @@ const Year = () => {
             <Title level={4} style={{ backgroundColor: '#A2DC5F', width: '100%', height: '50px', display: "flex", alignItems: 'center', justifyContent: 'center', gap: "20px" }}>{getYearLabel(selectedYear)}{getYearLabel(selectedYear) != 'ALL FINANCIAL YEARS' && <Button icon={renderToggleIcon()} onClick={toggleView}>
               {renderToggleText()}
             </Button>}</Title>
+
             <div style={tableContainerStyle}>
               {showBarGraph ? (
                 <div style={tableContainerStyle}>
@@ -410,8 +431,11 @@ const Year = () => {
                 </div>
               ) : (
                 renderTableRows()
-              )}
+                )}
             </div>
+            {selectedYear != 'ALL' && <div style={{display:'flex', alignItems: 'flex-start', justifyItems: 'flex-start', width: '100%'}}>
+                <Button onClick={exportToExcel} type='primary'>Export to Excel</Button>
+            </div>}
           </div>
         </Space>
       </Content>
