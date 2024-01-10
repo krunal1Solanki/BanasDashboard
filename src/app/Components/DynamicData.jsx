@@ -17,7 +17,7 @@ const DynamicData = ({ totalSales, topCategory, flopCategory, filteredData }) =>
         <Col span={8} style={{marginBottom : '10px'}}>
           <Statistic
             title="Total Sales"
-            value={`₹${totalSales.toFixed(2)}`}
+            value={`₹${(totalSales/100000).toFixed(2)}L`}
             prefix={<Icon type="dollar" />}
           />
         </Col>
@@ -40,7 +40,7 @@ const DynamicData = ({ totalSales, topCategory, flopCategory, filteredData }) =>
         <Col span={8} style={{marginBottom : '10px'}}>
           <Statistic
             title="Average Sales per Transaction"
-            value={`₹${averageSalesPerTransaction}`}
+            value={`₹${isNaN(averageSalesPerTransaction) ? 0 : averageSalesPerTransaction}`}
             prefix={<Icon type="line-chart" />}
           />
         </Col>

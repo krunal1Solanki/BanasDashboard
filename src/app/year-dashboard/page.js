@@ -1,13 +1,16 @@
 "use client";
-import { Table, Select, Space, Layout, Typography, Divider } from 'antd';
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
+import { Layout, Select, Space, Typography, Table, Button } from 'antd';
+import axios from 'axios';
+import { Chart } from 'chart.js/auto';
+import { Bar } from 'react-chartjs-2';
 import { useRouter } from 'next/navigation';
-import { FastBackwardOutlined } from '@ant-design/icons';
+import HeaderBanas from '../Components/HeaderBanas';
+import { registerables } from 'chart.js';
+import { SwapOutlined, TableOutlined, BarChartOutlined } from '@ant-design/icons';
 import './Year.css';
-import Image from 'next/image';
-import Delta from '../Images/DeltaInfosoft.png'
-import Banas from '../Images/Banas_Logo1.png'
+
+Chart.register(...registerables);
 
 const { Option } = Select;
 const { Header, Content } = Layout;
@@ -19,14 +22,25 @@ const Year = () => {
   const [filteredSalesData, setFilteredSalesData] = useState([]);
   const [selectedYear, setSelectedYear] = useState('ALL');
   const [selectedStoreType, setSelectedStoreType] = useState('ALL');
+  const [showBarGraph, setShowBarGraph] = useState(false);
+  const [selectedStoreNames, setSelectedStoreNames] = useState([]);
+
+  useEffect(() => {
+    // Set filtered data whenever salesData changes
+    setFilteredSalesData(
+      salesData?.filter(
+        (item) =>
+          (selectedStoreNames.length === 0 || selectedStoreNames.includes(item.StoreName)) &&   (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType) 
+      )
+    );
+  }, [selectedStoreNames, selectedStoreType]);
+  
 
   useEffect(() => {
     fetchData();
   }, []);
 
   useEffect(() => {
-    console.log(selectedStoreType);
-    // Apply filter when store type changes
     applyStoreTypeFilter();
   }, [selectedStoreType]);
 
@@ -35,7 +49,7 @@ const Year = () => {
       let url = '/api/getData';
       const response = await axios.get(url);
       setSalesData(response.data.data);
-      setFilteredSalesData(response.data.data); // Initialize filtered data with all data
+      setFilteredSalesData(response.data.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -43,7 +57,7 @@ const Year = () => {
 
   const applyStoreTypeFilter = () => {
     if (selectedStoreType === 'ALL') {
-      setFilteredSalesData(salesData); // If 'ALL', use all data
+      setFilteredSalesData(salesData);
     } else {
       const filteredData = salesData.filter(item => item.StoreType === selectedStoreType);
       setFilteredSalesData(filteredData);
@@ -58,11 +72,26 @@ const Year = () => {
     setSelectedStoreType(value);
   };
 
-  const calculateCumulativeSales = (filteredData) => {
+  const handleStoreNamesChange = (values) => {
+    setSelectedStoreNames(values);
+  };
+  
+  const toggleView = () => {
+    setShowBarGraph(!showBarGraph);
+  };
+
+  const renderToggleIcon = () => {
+    return showBarGraph ? <TableOutlined /> : <BarChartOutlined />;
+  };
+
+  const renderToggleText = () => {
+    return showBarGraph ? 'Table View' : 'Bar Graph View';
+  };
+  const calculateCumulativeSales = (filteredData, year, nextYear) => {
     const cumulativeSales = {};
     const validMonths = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+      'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR',
     ];
 
     validMonths.forEach(month => {
@@ -72,9 +101,13 @@ const Year = () => {
     filteredData.forEach(item => {
       const month = item.MonthName.trim().substring(0, 3).toUpperCase();
       const salesAmt = parseFloat(item.salesAmt);
+      const itemYear = item.Yr;
 
       if (!isNaN(salesAmt) && validMonths.includes(month)) {
-        cumulativeSales[month][item.StoreName] = (cumulativeSales[month][item.StoreName] || 0) + salesAmt;
+        if ((itemYear === year && validMonths.slice(0, 9).includes(month)) ||
+          (itemYear === nextYear && validMonths.slice(9).includes(month))) {
+          cumulativeSales[month][item.StoreName] = (cumulativeSales[month][item.StoreName] || 0) + salesAmt;
+        }
       }
     });
 
@@ -115,8 +148,8 @@ const Year = () => {
 
   const getColumns = () => {
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+      'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR',
     ];
 
     const columns = [
@@ -124,7 +157,7 @@ const Year = () => {
         title: 'Store',
         dataIndex: 'store',
         key: 'store',
-        sorter: (a, b) => a.store.localeCompare(b.store),
+        sorter: (a, b) => a.store == 'Total' || b.store == 'Total' ? 0 : a.store.localeCompare(b.store),
         sortDirections: ['ascend', 'descend'],
       },
       ...months.map(month => ({
@@ -132,17 +165,20 @@ const Year = () => {
         dataIndex: month,
         key: month,
         sorter: (a, b) => {
-          if (a.store === 'Total' || b.store === 'Total') {
-            return 0; // "Total" row should stay in its position
+          if (a.store == 'Total' || b.store == 'Total') {
+            return 0;
           }
           return parseFloat(a[month]) - parseFloat(b[month]);
         },
         sortDirections: ['ascend', 'descend'],
         render: (text, record) => {
-          const value = parseFloat(text) / 100000; // Divide by 100,000 for lacs
+          const value = parseFloat(text) / 100000;
           const isMax = record.store === 'Max';
           const isMin = record.store === 'Min';
           const isTotal = record.store === 'Total';
+          if (value === 0) {
+            return null;
+          }
 
           const style = {
             color: isMax ? 'green' : isMin ? 'red' : isTotal ? 'blue' : 'black',
@@ -156,15 +192,55 @@ const Year = () => {
 
     return columns;
   };
+  const renderTableRows = () => {
+
+
+
+    if (selectedYear === 'ALL') {
+      return (
+        <div style={containerStyle}>
+          {Array.from(new Set(filteredSalesData?.map(item => item.Yr))).sort((a, b) => parseInt(a) - parseInt(b)).map(year => (
+            <div key={year} style={tableContainerStyle}>
+              <Title level={3}>{getYearLabel(year)}</Title>
+              <Table
+                dataSource={getDataSourceForYear(year)}
+                columns={getColumns()}
+                size="middle"
+                bordered
+                pagination={false}
+                style={tableStyle}
+              />
+            </div>
+          ))}
+        </div>
+      );
+    } else
+      return <Table
+        dataSource={getDataSourceForYear(selectedYear)}
+        columns={getColumns()}
+        size="middle"
+        bordered
+        pagination={false}
+        onChange={(pagination, filters, sorter) => {
+          console.log('Table sorting changed:', sorter);
+        }}
+        style={tableStyle}
+      />
+
+
+  }
 
   const getDataSourceForYear = (year) => {
+
+    const nextYear = (+year + 1) + "";
     const storeNames = Array.from(new Set(filteredSalesData.map(item => item.StoreName)));
-    const filteredData = filteredSalesData.filter(item => item.Yr === year);
-    const cumulativeSales = calculateCumulativeSales(filteredData);
+    const filteredData = filteredSalesData.filter(item => item.Yr == year || item.Yr == nextYear);
+
+    const cumulativeSales = calculateCumulativeSales(filteredData, year, nextYear);
 
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+      'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR',
     ];
 
     const dataSource = storeNames.map(store => {
@@ -190,81 +266,77 @@ const Year = () => {
     return addTotalRow([...dataSourceWithoutTotal, totalRow]);
   };
 
-  const renderYearTables = () => {
-    const containerStyle = {
-      marginTop: '20px',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
+  const renderSalesBarGraph = (salesData, selectedYear) => {
+    const nextYear = (+selectedYear + 1) + "";
+    const validMonths = [
+      'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March',
+    ];
+    const filteredData = salesData.filter(item => ((item.Yr === selectedYear && validMonths.slice(0, 9).includes(item.MonthName)) ||
+      (item.Yr === nextYear && validMonths.slice(9).includes(item.MonthName))));
+
+    const months = [
+      'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March',
+    ];
+
+    const data = {
+      labels: months,
+      datasets: [
+        {
+          label: 'Total Sales',
+          data: months.map(month => {
+            const totalSalesForMonth = filteredData
+              .filter(item => item.MonthName.includes(month))
+              .reduce((total, item) => total + parseFloat(item.salesAmt), 0);
+            return totalSalesForMonth.toFixed(2);
+          }),
+          backgroundColor: 'rgba(75,192,192,0.2)',
+          borderColor: 'rgba(75,192,192,1)',
+          borderWidth: 1,
+          hoverBackgroundColor: 'rgba(75,192,192,0.4)',
+          hoverBorderColor: 'rgba(75,192,192,1)',
+        },
+      ],
     };
 
-    const tableContainerStyle = {
-      width: '100%',
-      overflowX: 'auto',
-      marginBottom: '20px',
+    const options = {
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true },
+      },
     };
 
-    const tableStyle = {
-      minWidth: '800px',
-    };
-
-    if (selectedYear === 'ALL') {
-      return (
-        <div style={containerStyle}>
-          {Array.from(new Set(filteredSalesData?.map(item => item.Yr))).sort((a, b) => parseInt(a) - parseInt(b)).map(year => (
-            <div key={year} style={tableContainerStyle}>
-              <Title level={3}>{year}</Title>
-              <Table
-                dataSource={getDataSourceForYear(year)}
-                columns={getColumns()}
-                size="middle"
-                bordered
-                pagination={false}
-                style={tableStyle}
-              />
-            </div>
-          ))}
-        </div>
-      );
-    } else {
-      return (
-        <div style={containerStyle}>
-          <Title level={4}>{selectedYear}</Title>
-          <div style={tableContainerStyle}>
-            <Table
-              dataSource={getDataSourceForYear(selectedYear)}
-              columns={getColumns()}
-              size="middle"
-              bordered
-              pagination={false}
-              onChange={(pagination, filters, sorter) => {
-                console.log('Table sorting changed:', sorter);
-              }}
-              style={tableStyle}
-            />
-          </div>
-        </div>
-      );
+    return <Bar data={data} options={options} />;
+  };
+  const getYearLabel = (year) => {
+    if (year === 'ALL') {
+      return 'ALL FINANCIAL YEARS';
     }
+    return `${year}-${(((+year + 1) + "").substring(2))}`;
+  };
+
+
+  const containerStyle = {
+    marginTop: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  };
+
+  const tableContainerStyle = {
+    width: '100%',
+    overflowX: 'auto',
+    marginBottom: '20px',
+  };
+
+  const tableStyle = {
+    minWidth: '800px',
   };
 
   return (
     <Layout className="dashboard-layout">
-      <Header className="dashboard-header" onClick={() => router.push('/')}>
-      <div style={{ background: 'linear-gradient(to right, #56ab2f, #a8e063)', padding: '16px' }}>
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-    <div>
-      <Image src={Delta} alt="Delta" width={150} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
-    </div>
-    <Title level={2} style={{ margin: 0, color: '#fff', textAlign: "center",  }}>
-      Umang Mall Dashboard
-    </Title>
-    <div>
-      <Image src={Banas} alt="Banas" width={150} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
-    </div>
-  </div>
-</div>
-      </Header>
+      <HeaderBanas />
       <Content className="dashboard-content">
         <Space direction="vertical" style={{ padding: '20px', width: '100%' }}>
           <div className="year-selector">
@@ -273,17 +345,17 @@ const Year = () => {
               onChange={handleYearChange}
               value={selectedYear || undefined}
             >
-              <Option value={'ALL'}>All Years</Option>
+              <Option value={'ALL'}>All Financial Years</Option>
               {salesData &&
                 Array.from(new Set(filteredSalesData.map(item => item.Yr)))
-                  .sort((a, b) =>  parseInt(b) - parseInt(a))
+                  .sort((a, b) => parseInt(b) - parseInt(a))
                   .map(year => (
                     <Option key={year} value={year}>
-                      {year}
+                      {getYearLabel(year)}
                     </Option>
                   ))}
             </Select>
-            {/* Add Select component for Store Type */}
+
             <Select
               style={{ width: '200px' }}
               onChange={handleStoreTypeChange}
@@ -298,8 +370,36 @@ const Year = () => {
                     </Option>
                   ))}
             </Select>
+            <Select
+              mode="multiple" // Set mode to 'multiple' for multi-select
+              style={{ width: '200px' }}
+              placeholder="All Stores"
+              onChange={handleStoreNamesChange}
+              value={selectedStoreNames}
+            >
+              {salesData &&
+                Array.from(new Set(salesData.map(item => item.StoreName)))
+                  .map(storeName => (
+                    <Option key={storeName} value={storeName}>
+                      {storeName}
+                    </Option>
+                  ))}
+            </Select>
           </div>
-          {renderYearTables()}
+          <div style={containerStyle}>
+            <Title level={4} style={{ backgroundColor: '#A2DC5F', width: '100%', height: '50px', display: "flex", alignItems: 'center', justifyContent: 'center', gap: "20px" }}>{getYearLabel(selectedYear)}{getYearLabel(selectedYear) != 'ALL FINANCIAL YEARS' && <Button icon={renderToggleIcon()} onClick={toggleView}>
+              {renderToggleText()}
+            </Button>}</Title>
+            <div style={tableContainerStyle}>
+              {showBarGraph ? (
+                <div style={tableContainerStyle}>
+                  {renderSalesBarGraph(filteredSalesData, selectedYear)}
+                </div>
+              ) : (
+                renderTableRows()
+              )}
+            </div>
+          </div>
         </Space>
       </Content>
     </Layout>
