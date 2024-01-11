@@ -410,19 +410,19 @@ const Page = () => {
         </Row>
         <Row gutter={16}>
           <Col span={8}>
-            <Card title="LOB Chart" style={{ height: '100%' }}>
+            <Card title="Category Wise (Doughnut)" style={{ height: '100%' }}>
               <Doughnut data={transformDataForDoughnutChart()} />
             </Card>
           </Col>
           <Col span={8}>
-            <Card title="LOB Chart" style={{ height: '100%', }}>
+            <Card title="Main Category Wise Sales (Ghee | Oil | Tea | FMCG)" style={{ height: '100%', }}>
               <div style={{ display: "flex", alignContent: 'center', justifyContent: 'center', marginTop: '15%' }}>
                 <Bar data={transformDataForBarChart()} />
               </div>
             </Card>
           </Col>
           <Col span={8}>
-            <Card title="LOB Chart" style={{ height: '100%' }}>
+            <Card title="Category Wise (Line)" style={{ height: '100%' }}>
               <div style={{ display: "flex", alignContent: 'center', justifyContent: 'center', marginTop: '15%' }}>
                 <Line data={transformDataForLineChart()} />
               </div>
