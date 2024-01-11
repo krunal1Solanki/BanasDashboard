@@ -426,7 +426,7 @@ const Year = () => {
               value={selectedStoreNames}
             >
               {salesData &&
-                Array.from(new Set(salesData.map(item => item.StoreName)))
+                Array.from(new Set(salesData.filter((item) => item.StoreType == selectedStoreType || selectedStoreType == 'ALL').map(item => item.StoreName)))
                   .map(storeName => (
                     <Option key={storeName} value={storeName}>
                       {storeName}
