@@ -3,15 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { Layout, Select, Space, Typography, Table, Button } from 'antd';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
-import { Chart } from 'chart.js/auto';
 import { Bar } from 'react-chartjs-2';
 import { useRouter } from 'next/navigation';
 import HeaderBanas from '../Components/HeaderBanas';
-import { registerables } from 'chart.js';
 import { SwapOutlined, TableOutlined, BarChartOutlined } from '@ant-design/icons';
 import './Year.css';
 
-
+import { Chart } from 'chart.js/auto';  
+import { registerables } from 'chart.js';
 Chart.register(...registerables);
 
 const { Option } = Select;
@@ -22,7 +21,7 @@ const Year = () => {
   const router = useRouter();
   const [salesData, setSalesData] = useState([]);
   const [filteredSalesData, setFilteredSalesData] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('ALL');
+  const [selectedYear, setSelectedYear] = useState('2023');
   const [selectedStoreType, setSelectedStoreType] = useState('ALL');
   const [showBarGraph, setShowBarGraph] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
