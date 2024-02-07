@@ -3,9 +3,6 @@ import { HomeOutlined, CalendarOutlined, MenuOutlined } from '@ant-design/icons'
 import { Button, Layout, Menu, Dropdown } from 'antd';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import Delta from '../../../public/BanasLogo1.png';
-import Banas from '../../../public/DeltaInfoSoft.png';
-import Bird from '../Components/Bird'
 import './bird.css'
 const { Header } = Layout;
 
@@ -31,8 +28,8 @@ const HeaderBanas = () => {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-evenly', width: '100%' }}>
         <div style={{display: 'flex', alignItems: "center", justifyContent: "center", marginRight: '50%'}}>
-        <Image src={Delta} alt="Delta" width={120} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
-            <Image src={Banas} alt="Banas" width={120} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px', marginLeft: '20px' }} />
+        <Image src='/DeltaInfosoft.png' alt="Delta" width={120} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
+            <Image src='/BanasLogo1' alt="Banas" width={120} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px', marginLeft: '20px' }} />
         </div>
         <div style={{ position: 'relative' }}>
           <div className="bird-container bird-container-one">
