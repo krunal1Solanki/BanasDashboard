@@ -5,7 +5,6 @@
     width: 88px;
     height: 125px;
     will-change: background-position;
-
     animation-name: fly-cycle;
     animation-timing-function: steps(10);
     animation-iteration-count: infinite;
@@ -145,4 +144,11 @@
 		transform: translateY(0vh) translateX(110vw) scale(0.45);
 	}
 	
+}
+.dashboard-header {
+    overflow: hidden;
+}
+
+.bird-container {
+    left: 0;
 }

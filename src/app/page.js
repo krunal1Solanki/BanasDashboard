@@ -85,6 +85,7 @@ const Page = () => {
   };
 
   useEffect(() => {
+    console.log("REM INNININNIN")
     let groupedData = filteredData;
     let map = new Map();
     if (selectedMonth === 'ALL') {
@@ -455,10 +456,6 @@ const Page = () => {
     // Transform data for Excel format
     const excelData = tableData.map((item) => ({
       'Store Name': item.StoreName,
-      'Line of Business (LOB)': item.LOB,
-      'Year': item.Yr,
-      'Month Name': item.MonthName,
-      'Sales Amount': item.salesAmt,
       'Store Type': item.StoreType,
       'FTD': item.FTD || '',
       'NOB': item.NOB || '',
@@ -691,7 +688,7 @@ const Page = () => {
               </Row>
               {selectedStore != 'ALL' && <Divider />}
               <Table dataSource={tableData} columns={keyHighlightsColumns} scroll={{ x: true }} pagination={false} />
-              <Button onClick={handleExportToExcelTableData} type="primary" style={{ marginTop: '15px' }}>
+              <Button onClick={handleExportToExcelTableData} type='primary' style={{ marginTop: '15px', backgroundColor: '#83ed7e',color :"black"}}>
               Export to Excel
             </Button>
             </Card>
@@ -784,7 +781,7 @@ const Page = () => {
             <Card title="Article Data">
               <Table dataSource={filteredArticleData} columns={articleColumns} scroll={{ x: true }} />
             </Card>
-            <Button onClick={handleExportToExcelArticle} type="primary" style={{ marginTop: '15px' }}>
+            <Button onClick={handleExportToExcelArticle} type="primary" style={{ marginTop: '15px', backgroundColor: '#83ed7e',color :"black"}}>
               Export to Excel
             </Button>
           </Col>
@@ -797,7 +794,7 @@ const Page = () => {
             <Card title=" LOB Summary Table">
               <Table dataSource={lobTable} scroll={{ x: true }} columns={columns} />
             </Card>
-            <Button onClick={handleExportToExcel} type="primary" style={{ marginTop: '15px' }}>
+            <Button onClick={handleExportToExcel} type="primary" style={{ marginTop: '15px', backgroundColor: '#83ed7e',color :"black"}}>
               Export to Excel
             </Button>
           </Col>

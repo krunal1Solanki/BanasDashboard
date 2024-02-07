@@ -448,7 +448,7 @@ const Year = () => {
                 )}
             </div>
             {selectedYear != 'ALL' && <div style={{display:'flex', alignItems: 'flex-start', justifyItems: 'flex-start', width: '100%'}}>
-                <Button onClick={exportToExcel} type='primary'>Export to Excel</Button>
+                <Button onClick={exportToExcel} style={{ marginTop: '15px', backgroundColor: '#83ed7e',color :"black"}} type='primary'>Export to Excel</Button>
             </div>}
           </div>
         </Space>

@@ -189,16 +189,15 @@ const Page = () => {
                     <div>
                         <Button
                             icon={<TableOutlined />}
-                            type={tableView ? 'primary' : 'default'}
                             onClick={() => setTableView(true)}
+                             style={{background : tableView ? '#83ed7e' : 'white'}}
                         >
                             Table
                         </Button>
                         <Button
                             icon={<BarChartOutlined />}
-                            type={tableView ? 'default' : 'primary'}
                             onClick={() => setTableView(false)}
-                            style={{ marginLeft: '8px', marginRight: '10px' }}
+                            style={{ marginLeft: '8px', marginRight: '10px', backgroundColor : !tableView ? '#83ed7e' : 'white'}}
                         >
                             Bar Chart
                         </Button>
@@ -208,7 +207,7 @@ const Page = () => {
                 {tableView ? (
                     <>
                         <Table dataSource={getPivotedData()} columns={getPivotedColumns()} scroll={{ x: true }} />
-                        <Button onClick={handleExportToExcel} type="primary" style={{ marginTop: '15px' }}>
+                        <Button onClick={handleExportToExcel} style={{ marginTop: '15px', backgroundColor: '#83ed7e',color :"black",marginTop: '15px'}} type="primary">
                             Export to Excel
                         </Button>
                     </>

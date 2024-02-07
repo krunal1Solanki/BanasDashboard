@@ -12,6 +12,7 @@
     "antd": "^5.12.7",
     "axios": "^1.6.4",
     "chart.js": "^4.4.1",
+    "chartjs-plugin-datalabels": "^2.2.0",
     "dayjs": "^1.11.10",
     "file-saver": "^2.0.5",
     "moment": "^2.30.1",

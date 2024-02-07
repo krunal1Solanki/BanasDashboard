@@ -24,12 +24,12 @@ const HeaderBanas = () => {
   );
 
   return (
-    <Header className="dashboard-header" style={{ background: 'linear-gradient(to right, #56ab2f, #a8e063)', padding: '0', width: '100%', margin: '0 auto', height: '40%' }}>
+    <Header className="dashboard-header" style={{ background: 'linear-gradient(to right, #56ab2f, #a8e063)', padding: '0', minWidth: '100%', margin: '0 auto', height: '40%' }}>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-evenly', width: '100%' }}>
         <div style={{display: 'flex', alignItems: "center", justifyContent: "center", marginRight: '50%'}}>
         <Image src='/DeltaInfosoft.png' alt="Delta" width={120} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px' }} />
-            <Image src='/BanasLogo1' alt="Banas" width={120} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px', marginLeft: '20px' }} />
+            <Image src='/BanasLogo1.png' alt="Banas" width={120} height={60} style={{ borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff', padding: '3px', marginLeft: '20px' }} />
         </div>
         <div style={{ position: 'relative' }}>
           <div className="bird-container bird-container-one">
