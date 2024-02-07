@@ -4,9 +4,12 @@ import { Layout, Table, Switch, Button, Select } from 'antd';
 import { BarChartOutlined, TableOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
+import { saveAs } from 'file-saver'; 
 import { Bar } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto';
 import { registerables } from 'chart.js';
+import * as XLSX from 'xlsx';
+
 Chart.register(...registerables);
 
 import HeaderBanas from '../Components/HeaderBanas';
@@ -23,6 +26,15 @@ const Page = () => {
     useEffect(() => {
         fetchData();
     }, []);
+    const handleExportToExcel = () => {
+        const pivotedData = getPivotedData();
+        const worksheet = XLSX.utils.json_to_sheet(pivotedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sales Data');
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        saveAs(new Blob([excelBuffer], { type: 'application/octet-stream' }), 'sales_data.xlsx');
+    };
+
 
     const fetchData = async () => {
         try {
@@ -125,7 +137,7 @@ const Page = () => {
             datasets: [
                 {
                     label: 'Total Balances',
-                    backgroundColor: 'rgba(75,192,192,0.4)',
+                    backgroundColor: '#99f587',
                     borderColor: 'rgba(75,192,192,1)',
                     borderWidth: 1,
                     hoverBackgroundColor: 'rgba(75,192,192,0.6)',
@@ -145,7 +157,7 @@ const Page = () => {
             <HeaderBanas />
             <Content style={{ padding: '24px' }}>
                 <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    
+
                     <div style={{ display: 'flex', alignItems: 'center' }}>
 
                         <span style={{ marginLeft: '8px', marginRight: '8px' }}>Select Store Type:</span>
@@ -155,7 +167,7 @@ const Page = () => {
                             onChange={handleStoreTypeSelectChange}
                             value={selectedStoreType}
                         >
-                             <Option value={''}>All Store Types</Option>
+                            <Option value={''}>All Store Types</Option>
                             <Option value="DCS">DCS</Option>
                             <Option value="Franchise">Franchise</Option>
                         </Select>
@@ -194,7 +206,12 @@ const Page = () => {
                 </div>
                 <h2>Pivot Data Table</h2>
                 {tableView ? (
-                    <Table dataSource={getPivotedData()} columns={getPivotedColumns()} scroll={{ x: true }} />
+                    <>
+                        <Table dataSource={getPivotedData()} columns={getPivotedColumns()} scroll={{ x: true }} />
+                        <Button onClick={handleExportToExcel} type="primary" style={{ marginTop: '15px' }}>
+                            Export to Excel
+                        </Button>
+                    </>
                 ) : (
                     <Bar data={getBarChartData()} />
                 )}

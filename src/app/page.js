@@ -39,6 +39,7 @@ const Page = () => {
   const [constTableData, setConstTableData] = useState([]);
   const [filteredArticleData, setFilteredArticleData] = useState([]);
   const [constFilteredTableData, setConstFilteredTableData] = useState([]);
+  const [lobTable, setLobTable] = useState([]);
   const [selectedStore, setSelectedStore] = useState('ALL');
 
   const handleStoreSelectionChange = (value) => {
@@ -84,6 +85,49 @@ const Page = () => {
   };
 
   useEffect(() => {
+    console.log("REM INNININNIN")
+    let groupedData = filteredData;
+    console.log("REMM step 1", groupedData.length, selectedMonth)
+    let map = new Map();
+    if (selectedMonth === 'ALL') {
+      for (let i = 0; i < groupedData?.length; i++) {
+        const curr = groupedData[i];
+        const key = curr.StoreName + curr.LOB + curr.Yr + curr.StoreType;
+        if (!map.has(key)) {
+          map.set(key, { ...curr, MonthName: 'All Months' }); // Initialize with MonthName as 'All Months'
+        } else {
+          const existing = map.get(key);
+          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt }); // Sum up sales amounts
+        }
+      }
+    }
+    if (selectedMonth == 'ALL') {
+      groupedData = Array.from(map.values());
+    }
+    map = new Map()
+    console.log("REMM", groupedData.length, selectedStores)
+    if (!selectedStores || selectedStores.length == 0) {
+      for (let i = 0; i < groupedData?.length; i++) {
+        const curr = groupedData[i];
+        const key = curr.LOB + curr.Yr + curr.StoreType;
+        if (!map.has(key)) {
+          map.set(key, { ...curr, StoreName: 'All Store' }); // Initialize with MonthName as 'All Months'
+        } else {
+          const existing = map.get(key);
+          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt }); // Sum up sales amounts
+        }
+      }
+    }
+
+    console.log("REM step 2", selectedStores.length, groupedData?.length)
+    if(selectedStores.length == 0)
+      groupedData = Array.from(map.values());
+    console.log("REMM 2", groupedData)
+    setLobTable(groupedData)
+
+  }, [filteredData])
+
+  useEffect(() => {
     const today = new Date();
     const previousMonthLastDate = new Date(today.getFullYear(), today.getMonth(), 0); // Last date of previous month
     const previousMonthFirstDate = new Date(previousMonthLastDate.getFullYear(), previousMonthLastDate.getMonth(), 1); // First date of previous month
@@ -127,27 +171,7 @@ const Page = () => {
           (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
       )
     );
-    
-    // const map = new Map();
-    // if (selectedMonth === 'ALL') {
-    //   for (let i = 0; i < salesData?.length; i++) {
-    //     const curr = salesData[i];
-    //     const key = curr.StoreName + curr.LOB + curr.Yr + curr.StoreType;
-    //     if (!map.has(key)) {
-    //       map.set(key, { ...curr, MonthName: 'All Months' }); // Initialize with MonthName as 'All Months'
-    //     } else {
-    //       const existing = map.get(key);
-    //       map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt }); // Sum up sales amounts
-    //     }
-    //   }
-    // }
-    
-    // // Convert Map values to an array of objects
-    // const groupedData = Array.from(map.values());
 
-    // if(selectedStore.length == 0)
-    // setFilteredData(groupedData)  
-  
     
     setFilteredArticleData(
       articleTable?.filter(
@@ -184,17 +208,19 @@ const Page = () => {
     return ((itemYear === selectedYear && validMonths.slice(0, 9).includes(month)) ||
       (itemYear === nextYear && validMonths.slice(9).includes(month)))
   }
-  useEffect(() => {
 
-    updateDynamicInsights();
-  }, [filteredData, selectedYear, selectedMonth, selectedStores, selectedStoreType]);
+  useEffect(()=> {
+    updateLobContribution()
+  }, [lobTable])
+
+
   const getYearLabel = (year) => {
     return year + `-${(((+year + 1) + "").substring(2))}`;
   }
-  const updateDynamicInsights = () => {
-    if (filteredData?.length === 0) setTotalSales(0);
-    if (filteredData && filteredData.length > 0) {
-      const groupedData = filteredData.reduce((acc, item) => {
+  const updateLobContribution = () => {
+    if (lobTable?.length === 0) setTotalSales(0);
+    if (lobTable && lobTable.length > 0) {
+      const groupedData = lobTable.reduce((acc, item) => {
         acc[item.LOB] = (acc[item.LOB] || 0) + item.salesAmt;
         return acc;
       }, {});
@@ -205,7 +231,7 @@ const Page = () => {
 
 
       const contributions = {};
-      filteredData.forEach((item) => {
+      lobTable.forEach((item) => {
         const key = `${item.StoreName}_${item.LOB}_${item.MonthName}_${item.Yr}`;
         contributions[key] = (contributions[key] || 0) + item.salesAmt;
       });
@@ -253,6 +279,9 @@ const Page = () => {
       title: 'Sales Amount',
       dataIndex: 'salesAmt',
       key: 'salesAmt',
+      render : (text, record) => {
+        return parseFloat(text).toFixed(2);
+      }
     },
     {
       title: 'Store Type',
@@ -278,7 +307,7 @@ const Page = () => {
     }
   };
 
-  useEffect(()=> {
+  useEffect(() => {
     console.log("ARTT", articleTable)
   }, [articleTable])
 
@@ -335,7 +364,7 @@ const Page = () => {
       key: 'SalesAmt',
     },
   ];
-  
+
 
   const keyHighlightsColumns = [
     {
@@ -428,22 +457,70 @@ const Page = () => {
       },
     },
   ];
-
-  const handleExportToExcel = () => {
-    if (!filteredData || filteredData.length === 0) {
+  const handleExportToExcelTableData = () => {
+    if (!tableData || tableData.length === 0) {
       // console.warn('No data to export.');
       return;
     }
-
+  
+    const sumActMTD = tableData.reduce((acc, item) => acc + (item.ActMTD || 0), 0);
+    const sumActYTD = tableData.reduce((acc, item) => acc + (item.ActYTD || 0), 0);
+  
     // Transform data for Excel format
-    const excelData = filteredData.map((item) => ({
+    const excelData = tableData.map((item) => ({
       'Store Name': item.StoreName,
       'Line of Business (LOB)': item.LOB,
       'Year': item.Yr,
       'Month Name': item.MonthName,
       'Sales Amount': item.salesAmt,
       'Store Type': item.StoreType,
+      'FTD': item.FTD || '',
+      'NOB': item.NOB || '',
+      'QTY': item.QTY || '',
+      'ABV': item.ABV || '',
+      'UPT': item.UPT || '',
+      'ASP': item.ASP || '',
+      'ActMTD': item.ActMTD || '',
+      'AvgSalesPerDay': item.AvgSalesPerDay || '',
+      'ActYTD': item.ActYTD || '',
+      'MTD Sls Mix': ((item.ActMTD || 0) / sumActMTD * 100).toFixed(2) + "%",
+      'YTD Sls Mix': ((item.ActYTD || 0) / sumActYTD * 100).toFixed(2) + "%",
     }));
+    // Create a worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData);
+  
+    // Create a workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'TableData');
+  
+    // Save the workbook as an Excel file
+    const fileName = `TableData_${selectedYear}_${selectedMonth}_${selectedStoreType}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+  
+
+  const handleExportToExcel = () => {
+    if (!lobTable || lobTable.length === 0) {
+      // console.warn('No data to export.');
+      return;
+    }
+
+    // Transform data for Excel format
+    const excelData = lobTable.map((item) => {
+      `${item.StoreName}_${item.LOB}_${item.MonthName}_${item.Yr}`
+      const key = `${item.StoreName}_${item.LOB}_${item.MonthName}_${item.Yr}`;
+      const lobContribution = lobContributions[key] || 0;
+  
+      return {
+        'Store Name': item.StoreName,
+        'Line of Business (LOB)': item.LOB,
+        'Year': item.Yr,
+        'Month Name': item.MonthName,
+        'Sales Amount': item.salesAmt,
+        'Store Type': item.StoreType,
+        'LOB Contribution (%)': lobContribution,
+      };
+    });
 
     // Create a worksheet
     const ws = XLSX.utils.json_to_sheet(excelData);
@@ -514,7 +591,33 @@ const Page = () => {
         </Option>
       ));
   };
-
+  const handleExportToExcelArticle = () => {
+    if (!filteredArticleData || filteredArticleData.length === 0) {
+      // console.warn('No data to export.');
+      return;
+    }
+  
+    // Transform data for Excel format
+    const excelData = filteredArticleData.map((item) => ({
+      'Article No': item.ArticleNo,
+      'Description': item.ArticleDesc,
+      'Store Name': item.StoreName,
+      'Qty': item.Qty,
+      'Sales Amt': item.SalesAmt,
+    }));
+  
+    // Create a worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData);
+  
+    // Create a workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'ArticleData');
+  
+    // Save the workbook as an Excel file
+    const fileName = `ArticleData_${selectedYear}_${selectedMonth}_${selectedStoreType}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+  
   const transformDataForStoresBarChart = () => {
     const storeData = filteredData?.reduce((acc, item) => {
       acc[item.StoreName] = (acc[item.StoreName] || 0) + item.salesAmt / 100000; // Divide by 100,000 to convert to lacs
@@ -602,6 +705,9 @@ const Page = () => {
               </Row>
               {selectedStore != 'ALL' && <Divider />}
               <Table dataSource={tableData} columns={keyHighlightsColumns} scroll={{ x: true }} pagination={false} />
+              <Button onClick={handleExportToExcelTableData} type="primary" style={{ marginTop: '15px' }}>
+              Export to Excel
+            </Button>
             </Card>
           </Col>
         </Row>
@@ -686,21 +792,24 @@ const Page = () => {
             </Card>
           </Col>
         </Row>
-        
+
         <Row gutter={16} style={{ marginTop: '20px' }}>
           <Col span={24}>
             <Card title="Article Data">
-              <Table dataSource={filteredArticleData} columns={articleColumns} scroll={{ x: true }}/>
+              <Table dataSource={filteredArticleData} columns={articleColumns} scroll={{ x: true }} />
             </Card>
+            <Button onClick={handleExportToExcelArticle} type="primary" style={{ marginTop: '15px' }}>
+              Export to Excel
+            </Button>
           </Col>
         </Row>
         {/* {console.log("FILTERED", filteredData)} */}
-        <Divider/>
-        <Divider/>
+        <Divider />
+        <Divider />
         <Row gutter={16} style={{ marginTop: '20px' }}>
           <Col span={24}>
             <Card title=" LOB Summary Table">
-              <Table dataSource={filteredData} scroll={{ x: true }} columns={columns} />
+              <Table dataSource={lobTable} scroll={{ x: true }} columns={columns} />
             </Card>
             <Button onClick={handleExportToExcel} type="primary" style={{ marginTop: '15px' }}>
               Export to Excel
