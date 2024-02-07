@@ -85,9 +85,7 @@ const Page = () => {
   };
 
   useEffect(() => {
-    console.log("REM INNININNIN")
     let groupedData = filteredData;
-    console.log("REMM step 1", groupedData.length, selectedMonth)
     let map = new Map();
     if (selectedMonth === 'ALL') {
       for (let i = 0; i < groupedData?.length; i++) {
@@ -105,7 +103,6 @@ const Page = () => {
       groupedData = Array.from(map.values());
     }
     map = new Map()
-    console.log("REMM", groupedData.length, selectedStores)
     if (!selectedStores || selectedStores.length == 0) {
       for (let i = 0; i < groupedData?.length; i++) {
         const curr = groupedData[i];
@@ -118,11 +115,8 @@ const Page = () => {
         }
       }
     }
-
-    console.log("REM step 2", selectedStores.length, groupedData?.length)
     if(selectedStores.length == 0)
       groupedData = Array.from(map.values());
-    console.log("REMM 2", groupedData)
     setLobTable(groupedData)
 
   }, [filteredData])
@@ -154,11 +148,6 @@ const Page = () => {
   useEffect(() => {
     fetchDataQuery();
   }, [startDate, endDate]);
-
-
-  useEffect(() => {
-    console.log("JAIII", tableData)
-  }, [tableData])
 
   useEffect(() => {
     // Set filtered data whenever salesData changes
@@ -307,9 +296,6 @@ const Page = () => {
     }
   };
 
-  useEffect(() => {
-    console.log("ARTT", articleTable)
-  }, [articleTable])
 
   const transformDataForDoughnutChart = () => {
     if (!filteredData || filteredData.length === 0) {
