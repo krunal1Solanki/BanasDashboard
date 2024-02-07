@@ -41,7 +41,6 @@ const HeaderBanas = () => {
           <div className="bird-container bird-container-two">
             <div className="bird bird-two"></div>
           </div>
-
           <div style={{ display: 'flex', alignItems: 'center', justifyContent:'space-evenly', padding: '16px' }}>
            <h2 style={{ margin: '0', color: '#fff',  whiteSpace: 'nowrap', marginRight: '50%' }}>Umang Mall Dashboard</h2>
             <Dropdown overlay={menu} visible={menuVisible} onVisibleChange={(visible) => setMenuVisible(visible)}>
