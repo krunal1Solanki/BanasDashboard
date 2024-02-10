@@ -4,13 +4,16 @@ import { Layout, Table, Switch, Button, Select } from 'antd';
 import { BarChartOutlined, TableOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
-import { saveAs } from 'file-saver'; 
+import { saveAs } from 'file-saver';
 import { Bar } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto';
 import { registerables } from 'chart.js';
 import * as XLSX from 'xlsx';
+import Loader from '../Components/Loader'
+import ChartDataLabels from "chartjs-plugin-datalabels";
 
-Chart.register(...registerables);
+
+Chart.register(...registerables, ChartDataLabels);
 
 import HeaderBanas from '../Components/HeaderBanas';
 
@@ -19,6 +22,7 @@ const { Option } = Select;
 
 const Page = () => {
     const [salesData, setSalesData] = useState([]);
+    const [loading, setLoading] = useState(false);
     const [selectedStores, setSelectedStores] = useState([]);
     const [selectedStoreType, setSelectedStoreType] = useState('');
     const [tableView, setTableView] = useState(true);
@@ -36,7 +40,27 @@ const Page = () => {
     };
 
 
+    const options = {
+        plugins: {
+            datalabels: {
+                display: true,
+                color: "black",
+                formatter: (value) => `${(value / 100000).toFixed(2)}`, // Format values in lakhs
+                anchor: "end",
+                offset: -20,
+                align: "start"
+            }
+        },
+        legend: {
+            display: false
+        },
+
+    };
+
+
+
     const fetchData = async () => {
+        setLoading(true);
         try {
             let url = '/api/getData';
             const response = await axios.get(url);
@@ -49,6 +73,8 @@ const Page = () => {
             setSalesData(formattedData);
         } catch (error) {
             console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false)
         }
     };
 
@@ -81,15 +107,44 @@ const Page = () => {
             }
         });
 
-        return Object.entries(pivotedData).map(([particular, balances]) => ({
+        const onj = Object.entries(pivotedData).map(([particular, balances]) => ({
             Particular: particular,
             ...balances,
         })).concat({
             Particular: 'Total',
             ...columnTotals,
         });
+
+        console.log("MAP", onj)
+        const storeArr = onj[0];
+        const totalArr = onj[onj.length - 1]
+        const map = new Map()
+        for(const key in  storeArr) {
+            if(key != "Particular")
+                map.set(key, storeArr[key]);
+        }
+
+        const percentages = {}
+        for(const key in totalArr) {
+            if(key!= 'Total') {
+                console.log("MAP", key, totalArr[key], map.get(key))
+                percentages[key] = "("+parseFloat((totalArr[key]/map.get(key)) * 100).toFixed(2)+"%)";
+            }
+        }
+        const copy = onj[0];
+        for(const key in copy) {
+            copy[key] = copy[key] + percentages[key];
+        }
+        console.log("MAP COPY", copy)
+        onj[0] = copy;
+        console.log("MAP", map, percentages, "REAL", onj)
+        return onj;
     };
 
+    function formatIndianNumber(number) {
+        const formatter = new Intl.NumberFormat('en-IN');
+        return formatter.format(number);
+    }
 
     const getPivotedColumns = () => {
         const storeNamesToShow = selectedStores.length > 0 ? selectedStores : salesData.filter((item) => selectedStoreType.length == 0 || selectedStoreType == item.StoreType).map(item => item.StoreName);
@@ -99,18 +154,27 @@ const Page = () => {
             {
                 title: 'Particular',
                 dataIndex: 'Particular',
+                align: 'left',
                 key: 'Particular',
+                render: (text, record) => {
+                    console.log("MAP", record);
+                    const isTotal = record.Particular === 'Total';
+                    const style = isTotal ? { fontWeight: 'bold' } : {};
+                    return <span style={{ whiteSpace: 'nowrap', ...style }}>{text}</span>;
+                },
             },
             ...uniqueStoreNames.map(storeName => ({
                 title: storeName,
                 dataIndex: storeName,
+                align: 'right',
                 key: storeName,
                 render: (text, record) => {
                     const isTotal = record.Particular === 'Total';
+                    if(text && (text+"").includes('(')) return text;
                     const color = isTotal ? (parseInt(text) >= 0 ? 'green' : 'red') : '';
                     const value = isNaN(parseInt(text)) ? 0 : parseInt(text);
-
-                    return <span style={{ color }}>{value}</span>;
+                    const style = isTotal ? { fontWeight: 'bold' } : {};
+                    return <span style={{ color, ...style }}>{value}</span>;
                 },
             })),
         ];
@@ -155,7 +219,7 @@ const Page = () => {
     return (
         <Layout style={{ minHeight: '100vh' }}>
             <HeaderBanas />
-            <Content style={{ padding: '24px' }}>
+            {loading ? <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader size='large' /></div> : <Content style={{ padding: '24px' }}>
                 <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
                     <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -179,42 +243,44 @@ const Page = () => {
                             onChange={handleStoreSelectChange}
                             value={selectedStores}
                         >
-                            {salesData.filter((item) => selectedStoreType.length == 0 || selectedStoreType == item.StoreType).map(item => (
-                                <Option key={item.StoreName} value={item.StoreName}>
-                                    {item.StoreName}
+                            {[...new Set(salesData?.filter((item) => selectedStoreType.length === 0 || selectedStoreType === item.StoreType).map(item => item.StoreName))].map(storeName => (
+                                <Option key={storeName} value={storeName}>
+                                    {storeName}
                                 </Option>
                             ))}
                         </Select>
+
                     </div>
                     <div>
                         <Button
                             icon={<TableOutlined />}
                             onClick={() => setTableView(true)}
-                             style={{background : tableView ? '#83ed7e' : 'white'}}
+                            style={{ background: tableView ? '#83ed7e' : 'white' }}
                         >
                             Table
                         </Button>
                         <Button
                             icon={<BarChartOutlined />}
                             onClick={() => setTableView(false)}
-                            style={{ marginLeft: '8px', marginRight: '10px', backgroundColor : !tableView ? '#83ed7e' : 'white'}}
+                            style={{ marginLeft: '8px', marginRight: '10px', backgroundColor: !tableView ? '#83ed7e' : 'white' }}
                         >
                             Bar Chart
                         </Button>
                     </div>
                 </div>
-                <h2>Pivot Data Table</h2>
+                <h2>Store Wise P&L</h2>
                 {tableView ? (
                     <>
-                        <Table dataSource={getPivotedData()} columns={getPivotedColumns()} scroll={{ x: true }} />
-                        <Button onClick={handleExportToExcel} style={{ marginTop: '15px', backgroundColor: '#83ed7e',color :"black",marginTop: '15px'}} type="primary">
+                        <Table dataSource={getPivotedData()} columns={getPivotedColumns()} bordered scroll={{ x: true }} />
+                        <Button onClick={handleExportToExcel} style={{ marginTop: '15px', backgroundColor: '#83ed7e', color: "black", marginTop: '15px' }} type="primary">
                             Export to Excel
                         </Button>
                     </>
                 ) : (
-                    <Bar data={getBarChartData()} />
+                    <Bar data={getBarChartData()} options={options} />
                 )}
             </Content>
+            }
         </Layout>
     );
 };
