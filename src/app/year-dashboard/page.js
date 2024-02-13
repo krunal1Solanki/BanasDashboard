@@ -4,14 +4,17 @@ import { Layout, Select, Space, Typography, Table, Button } from 'antd';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
 import { Bar } from 'react-chartjs-2';
+import  Loader  from '../Components/Loader';
 import { useRouter } from 'next/navigation';
 import HeaderBanas from '../Components/HeaderBanas';
 import { SwapOutlined, TableOutlined, BarChartOutlined } from '@ant-design/icons';
 import './Year.css';
+import ChartDataLabels from "chartjs-plugin-datalabels";
+
 
 import { Chart } from 'chart.js/auto';  
 import { registerables } from 'chart.js';
-Chart.register(...registerables);
+Chart.register(...registerables, ChartDataLabels);
 
 const { Option } = Select;
 const { Header, Content } = Layout;
@@ -19,6 +22,7 @@ const { Title } = Typography;
 
 const Year = () => {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
   const [salesData, setSalesData] = useState([]);
   const [filteredSalesData, setFilteredSalesData] = useState([]);
   const [selectedYear, setSelectedYear] = useState('2023');
@@ -52,11 +56,14 @@ const Year = () => {
   const fetchData = async () => {
     try {
       let url = '/api/getData';
+      setLoading(true); // Set loading to true before fetching data
       const response = await axios.get(url);
       setSalesData(response.data.data);
       setFilteredSalesData(response.data.data);
     } catch (error) {
       console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false); // Set loading to false after fetching data
     }
   };
 
@@ -180,6 +187,7 @@ const Year = () => {
         title: 'Store',
         dataIndex: 'store',
         key: 'store',
+        align: 'left',
         sorter: (a, b) => a.store == 'Total' || b.store == 'Total' ? 0 : a.store.localeCompare(b.store),
         sortDirections: ['ascend', 'descend'],
       },
@@ -187,6 +195,7 @@ const Year = () => {
         title: month,
         dataIndex: month,
         key: month,
+        align : 'right',
         sorter: (a, b) => {
           if (a.store == 'Total' || b.store == 'Total') {
             return 0;
@@ -321,18 +330,14 @@ const Year = () => {
       labels: months,
       datasets: [
         {
-          label: 'Total Sales',
+          label: 'Total Sales in Lacs ',
           data: months.map(month => {
             const totalSalesForMonth = filteredData
               .filter(item => item.MonthName.includes(month))
               .reduce((total, item) => total + parseFloat(item.salesAmt), 0);
-            return totalSalesForMonth.toFixed(2);
+            return (totalSalesForMonth.toFixed(2)/100000);
           }),
-          backgroundColor: 'rgba(75,192,192,0.2)',
-          borderColor: 'rgba(75,192,192,1)',
-          borderWidth: 1,
-          hoverBackgroundColor: 'rgba(75,192,192,0.4)',
-          hoverBorderColor: 'rgba(75,192,192,1)',
+          backgroundColor: '#99f587',
         },
       ],
     };
@@ -342,6 +347,19 @@ const Year = () => {
         x: { stacked: true },
         y: { stacked: true },
       },
+      plugins: {
+        datalabels: {
+          display: true,
+          color: "black",
+          formatter: Math.round,
+          anchor: "end",
+          offset: -20,
+          align: "start"
+        }
+      },
+      legend: {
+        display: false
+    }
     };
 
     return <Bar data={data} options={options} />;
@@ -391,8 +409,8 @@ const Year = () => {
   return (
     <Layout className="dashboard-layout">
       <HeaderBanas />
-      <Content className="dashboard-content">
-        <Space direction="vertical" style={{ padding: '20px', width: '100%' }}>
+      {loading ? <div style={{height: '100vh',display:  'flex', alignItems: 'center', justifyContent: 'center'}}><Loader size='large'/></div> : <Content className="dashboard-content">
+       <Space direction="vertical" style={{ padding: '20px', width: '100%' }}>
           <div className="year-selector">
             <Select
               style={{ width: '200px', marginRight: '10px' }}
@@ -452,7 +470,7 @@ const Year = () => {
             </div>}
           </div>
         </Space>
-      </Content>
+      </Content>}
     </Layout>
   );
 };
