@@ -170,6 +170,7 @@ const Page = () => {
                 key: storeName,
                 render: (text, record) => {
                     const isTotal = record.Particular === 'Total';
+                    if(text && (text+"").includes('(')) return text;
                     const color = isTotal ? (parseInt(text) >= 0 ? 'green' : 'red') : '';
                     const value = isNaN(parseInt(text)) ? 0 : parseInt(text);
                     const style = isTotal ? { fontWeight: 'bold' } : {};
