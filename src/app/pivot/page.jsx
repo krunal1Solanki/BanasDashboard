@@ -23,6 +23,8 @@ const { Option } = Select;
 const Page = () => {
     const [salesData, setSalesData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [selectedYear, setSelectedYear] = useState('2023-24');
+    const [selectedMonth, setSelectedMonth] = useState('ALL');
     const [selectedStores, setSelectedStores] = useState([]);
     const [selectedStoreType, setSelectedStoreType] = useState('');
     const [tableView, setTableView] = useState(true);
@@ -57,6 +59,30 @@ const Page = () => {
 
     };
 
+    const renderYearOptions = () => {
+        return (
+            salesData &&
+            Array.from(new Set(salesData.map((item) => item.Yr)))
+                .sort((a, b) => parseInt(b) - parseInt(a))
+                .map((year) => (
+                    <Option key={year} value={year}>
+                        {year}
+                    </Option>
+                ))
+        );
+    };
+    const renderMonthOptions = () => {
+        return (
+            salesData &&
+            Array.from(new Set(salesData.map((item) => item.MonthName)))
+                .sort((a, b) => parseInt(b) - parseInt(a))
+                .map((year) => (
+                    <Option key={year} value={year}>
+                        {year}
+                    </Option>
+                ))
+        );
+    };
 
 
     const fetchData = async () => {
@@ -78,68 +104,58 @@ const Page = () => {
         }
     };
 
+    useEffect(()=> {
+        getPivotedData()
+    }, [selectedYear, selectedMonth])
+
     const getPivotedData = () => {
-        const filteredData = selectedStores.length > 0
-            ? salesData.filter(item => selectedStores.includes(item.StoreName) && (!selectedStoreType || item.StoreType === selectedStoreType))
+        let filteredData = selectedStores.length > 0
+                    ? salesData.filter(item => selectedStores.includes(item.StoreName) && (!selectedStoreType || item.StoreType === selectedStoreType))
             : salesData;
 
+        console.log("BEFORE", filteredData, selectedYear)
+        filteredData = selectedYear == 'ALL' ? filteredData  : filteredData.filter((item) => item.Yr == selectedYear)
+        filteredData = selectedMonth == 'ALL' ? filteredData  : filteredData.filter((item) => item.MonthName == selectedMonth)
+        console.log("CHANGE", filteredData.map((item)=> item.MonthName))
+        
         const pivotedData = {};
-        const columnTotals = {};
 
         filteredData.forEach(item => {
             const storeName = item.StoreName;
             const particular = item.Particular;
             const balance = typeof item.Balance === 'number' ? item.Balance : 0;
 
-            // Check if the store type matches the selected store type
             if (!selectedStoreType || item.StoreType === selectedStoreType) {
                 if (!pivotedData[particular]) {
                     pivotedData[particular] = {};
                 }
-
                 pivotedData[particular][storeName] = balance;
-
-                if (!columnTotals[storeName]) {
-                    columnTotals[storeName] = 0;
-                }
-
-                columnTotals[storeName] += balance;
             }
         });
 
-        const onj = Object.entries(pivotedData).map(([particular, balances]) => ({
-            Particular: particular,
-            ...balances,
-        })).concat({
-            Particular: 'Total',
-            ...columnTotals,
+        // Calculate totals for each column
+        const columnTotals = {};
+        Object.entries(pivotedData).forEach(([parentKey, balances]) => {
+            console.log("NEXT Parent Key:", parentKey);
+            if (parentKey == '5. Gross Profit') return;
+            Object.entries(balances).forEach(([storeName, balance]) => {
+                console.log("NEXT Child Key:", storeName, "Balance:", balance);
+                columnTotals[storeName] = (columnTotals[storeName] || 0) + balance;
+            });
         });
 
-        // console.log("MAP", onj)
-        // const storeArr = onj[0];
-        // const totalArr = onj[onj.length - 1]
-        // const map = new Map()
-        // for(const key in  storeArr) {
-        //     if(key != "Particular")
-        //         map.set(key, storeArr[key]);
-        // }
 
-        // const percentages = {}
-        // for(const key in totalArr) {
-        //     if(key!= 'Total') {
-        //         console.log("MAP", key, totalArr[key], map.get(key))
-        //         percentages[key] = "("+parseFloat((totalArr[key]/map.get(key)) * 100).toFixed(2)+"%)";
-        //     }
-        // }
-        // const copy = onj[0];
-        // for(const key in copy) {
-        //     copy[key] = copy[key] + percentages[key];
-        // }
-        // console.log("MAP COPY", copy)
-        // onj[0] = copy;
-        // console.log("MAP", map, percentages, "REAL", onj)
-        return onj;
+        // Add a row for totals
+        pivotedData['Total'] = columnTotals;
+
+        // Transform data for output
+        return Object.entries(pivotedData).map(([particular, balances]) => ({
+            Particular: particular,
+            ...balances,
+        }));
     };
+
+
 
     function formatIndianNumber(number) {
         const formatter = new Intl.NumberFormat('en-IN');
@@ -158,7 +174,7 @@ const Page = () => {
                 key: 'Particular',
                 render: (text, record) => {
                     console.log("MAP", record);
-                    const isTotal = record.Particular === 'Total';
+                    const isTotal = record.Particular === 'Total' || record.Particular == '5. Gross Profit';
                     const style = isTotal ? { fontWeight: 'bold' } : {};
                     return <span style={{ whiteSpace: 'nowrap', ...style }}>{text}</span>;
                 },
@@ -169,8 +185,7 @@ const Page = () => {
                 align: 'right',
                 key: storeName,
                 render: (text, record) => {
-                    const isTotal = record.Particular === 'Total';
-                    if(text && (text+"").includes('(')) return text;
+                    const isTotal = record.Particular === 'Total' || record.Particular == '5. Gross Profit';
                     const color = isTotal ? (parseInt(text) >= 0 ? 'green' : 'red') : '';
                     const value = isNaN(parseInt(text)) ? 0 : parseInt(text);
                     const style = isTotal ? { fontWeight: 'bold' } : {};
@@ -215,6 +230,12 @@ const Page = () => {
     const toggleView = () => {
         setTableView(!tableView);
     };
+    const handleYearChange = (value) => {
+        setSelectedYear(value);
+    };
+    const handleMonthChange = (value) => {
+        setSelectedMonth(value)
+    }
 
     return (
         <Layout style={{ minHeight: '100vh' }}>
@@ -224,7 +245,23 @@ const Page = () => {
 
                     <div style={{ display: 'flex', alignItems: 'center' }}>
 
-                        <span style={{ marginLeft: '8px', marginRight: '8px' }}>Select Store Type:</span>
+                        <Select
+                            style={{ width: '200px', marginRight: '10px' }}
+                            onChange={handleYearChange}
+                            value={selectedYear || undefined}
+                        >
+                            <Option value={'ALL'}>All Financial Years</Option>
+                            {renderYearOptions()}
+                        </Select>
+                        <Select
+                            style={{ width: '200px', marginRight: '10px' }}
+                            onChange={handleMonthChange}
+                            value={selectedMonth || undefined}
+                        >
+                            <Option value={'ALL'}>All Month</Option>
+                            {renderMonthOptions()}
+                        </Select>
+
                         <Select
                             style={{ width: '200px', marginRight: '8px' }}
                             placeholder="Select store type"
@@ -235,7 +272,6 @@ const Page = () => {
                             <Option value="DCS">DCS</Option>
                             <Option value="Franchise">Franchise</Option>
                         </Select>
-                        <span style={{ marginLeft: '8px', marginRight: '8px' }}>Select Stores:</span>
                         <Select
                             mode="multiple"
                             style={{ width: '200px', marginRight: '8px' }}

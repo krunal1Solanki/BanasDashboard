@@ -36,6 +36,9 @@ const Page = () => {
   const [selectedMonth, setSelectedMonth] = useState('ALL');
   const [selectedStores, setSelectedStores] = useState([]); // Change to an array for multi-select
   const [lobs, setSelectedLobs] = useState([]); // Change to an array for multi-select
+  const [descs, setDescs] = useState([]); // Change to an array for multi-select
+  const [mains, setSelectedMains] = useState([]); // Change to an array for multi-select
+
   const [selectedStoreType, setSelectedStoreType] = useState('ALL');
   const [selectedStoreType2, setSelectedStoreType2] = useState('ALL');
 
@@ -75,10 +78,10 @@ const Page = () => {
   }, [selectedStore, tableData])
 
 
-function formatIndianNumber(number) {
+  function formatIndianNumber(number) {
     const formatter = new Intl.NumberFormat('en-IN');
     return formatter.format(number);
-}
+  }
 
   const handleSelectChange = (value) => {
     setSelectedArticle(value);
@@ -88,6 +91,7 @@ function formatIndianNumber(number) {
     setLoading(loading + 1)
     try {
       let url = '/api/getTableData';
+      if (!startDate || !endDate) return;
 
       const body = {
         startDate, endDate
@@ -125,15 +129,16 @@ function formatIndianNumber(number) {
     console.log("REM INNININNIN")
     let groupedData = filteredArticleData;
     let map = new Map();
+    console.log("GROUP", groupedData)
     if (selectedMonth === 'ALL') {
       for (let i = 0; i < groupedData?.length; i++) {
         const curr = groupedData[i];
-        const key = curr.StoreName + curr.LOB + curr.Yr + curr.StoreType + curr.ArticleDesc + curr.ArticleNo;
+        const key = curr.StoreName + curr.LOB + curr.StoreType + curr.ArticleDesc + curr.ArticleNo;
         if (!map.has(key)) {
-          map.set(key, { ...curr, MonthName: 'All Months' }); // Initialize with MonthName as 'All Months'
+          map.set(key, { ...curr, MonthName: 'All Months', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Qty: existing.Qty + curr.Qty }); // Sum up sales amounts
+          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Qty: existing.Qty + curr.Qty, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
         }
       }
     }
@@ -144,12 +149,12 @@ function formatIndianNumber(number) {
     if (!selectedStores || selectedStores.length == 0) {
       for (let i = 0; i < groupedData?.length; i++) {
         const curr = groupedData[i];
-        const key = curr.LOB + curr.Yr + curr.StoreType + curr.ArticleDesc + curr.ArticleNo;
+        const key = curr.LOB + curr.StoreType + curr.ArticleDesc + curr.ArticleNo;
         if (!map.has(key)) {
-          map.set(key, { ...curr, StoreName: 'All Store' }); // Initialize with MonthName as 'All Months'
+          map.set(key, { ...curr, StoreName: 'All Store', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Qty: existing.Qty + curr.Qty }); // Sum up sales amounts
+          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Qty: existing.Qty + curr.Qty, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
         }
       }
     }
@@ -168,12 +173,12 @@ function formatIndianNumber(number) {
     if (selectedMonth === 'ALL') {
       for (let i = 0; i < groupedData?.length; i++) {
         const curr = groupedData[i];
-        const key = curr.StoreName + curr.LOB + curr.Yr + curr.StoreType;
+        const key = curr.StoreName + curr.LOB + curr.StoreType;
         if (!map.has(key)) {
-          map.set(key, { ...curr, MonthName: 'All Months' }); // Initialize with MonthName as 'All Months'
+          map.set(key, { ...curr, MonthName: 'All Months', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt }); // Sum up sales amounts
+          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
         }
       }
     }
@@ -184,12 +189,12 @@ function formatIndianNumber(number) {
     if (!selectedStores || selectedStores.length == 0) {
       for (let i = 0; i < groupedData?.length; i++) {
         const curr = groupedData[i];
-        const key = curr.LOB + curr.Yr + curr.StoreType;
+        const key = curr.LOB + curr.StoreType;
         if (!map.has(key)) {
-          map.set(key, { ...curr, StoreName: 'All Store' }); // Initialize with MonthName as 'All Months'
+          map.set(key, { ...curr, StoreName: 'All Store', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt }); // Sum up sales amounts
+          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
         }
       }
     }
@@ -199,17 +204,7 @@ function formatIndianNumber(number) {
 
   }, [filteredData])
 
-  useEffect(() => {
-    const today = new Date();
-    const previousMonthLastDate = new Date(today.getFullYear(), today.getMonth(), 0); // Last date of previous month
-    const previousMonthFirstDate = new Date(previousMonthLastDate.getFullYear(), previousMonthLastDate.getMonth(), 1); // First date of previous month
 
-    const formattedStartDate = previousMonthFirstDate.toISOString().split('T')[0];
-    const formattedEndDate = previousMonthLastDate.toISOString().split('T')[0];
-
-    setStartDate(formattedStartDate)
-    setEndDate(formattedEndDate);
-  }, []);
 
 
 
@@ -456,10 +451,10 @@ function formatIndianNumber(number) {
 
   const keyHighlightsColumns = [
     {
-      title: <span style={{ whiteSpace: 'nowrap' }}>{'Opening Date'}</span>,
+      title: <span style={{ whiteSpace: 'nowrap' }}>{'Store Opening Date'}</span>,
       dataIndex: 'StoreOpenDt',
       key: 'StoreOpenDt',
-      align: 'right',
+      align: 'left',
       render: (date) => {
         const options = { day: '2-digit', month: 'short', year: 'numeric' };
         return <span style={{ whiteSpace: 'nowrap' }}>{new Date(date).toLocaleDateString('en-US', options).replace(/(\d+)\/(\w+)\/(\d+)/, '$1-$2-$3')}</span>;
@@ -468,12 +463,12 @@ function formatIndianNumber(number) {
     {
       title: 'Store Name',
       dataIndex: 'StoreName',
-      align: 'right',
+      align: 'left',
       key: 'StoreName',
     },
     {
       title: <span style={{ whiteSpace: 'nowrap' }}>{'Store Type'}</span>,
-      align: 'right',
+      align: 'left',
       dataIndex: 'StoreType',
       key: 'StoreType',
     },
@@ -700,9 +695,10 @@ function formatIndianNumber(number) {
       // console.warn('No data to export.');
       return;
     }
-
+    const data = (selectedArticle == 'ALL' ? articles : articles.filter((item) => item.ArticleNo == selectedArticle)).filter((item) => lobs.length == 0 || lobs.includes(item.LOB)).filter((item) => mains.length == 0 || mains.includes(item.MainCategory))
+    if (!data || data.length == 0) return;
     // Transform data for Excel format
-    const excelData = articles.map((item) => ({
+    const excelData = data.map((item) => ({
       'Article No': item.ArticleNo,
       'Description': item.ArticleDesc,
       'Line of Business (LOB)': item.LOB,
@@ -725,7 +721,6 @@ function formatIndianNumber(number) {
     XLSX.writeFile(wb, fileName);
   };
 
-  useEffect(() => console.log(selectedArticle), [selectedArticle])
   const transformDataForStoresBarChart = () => {
     const storeData = filteredData?.reduce((acc, item) => {
       acc[item.StoreName] = (acc[item.StoreName] || 0) + item.salesAmt / 100000; // Divide by 100,000 to convert to lacs
@@ -763,8 +758,14 @@ function formatIndianNumber(number) {
   const handleLOBChange = (selectedValues) => {
     setSelectedLobs(selectedValues);
   };
+  const handleDescChange = (s) => {
+    setDescs(s)
+  }
+  const handleMainChange = (selectedValues) => {
+    setSelectedMains(selectedValues)
+  }
 
-  useEffect(()=> {
+  useEffect(() => {
     console.log("THIS")
   }, [lobs])
 
@@ -779,6 +780,14 @@ function formatIndianNumber(number) {
   const handleStoreTypeChange2 = (value) => {
     setSelectedStoreType2(value);
   };
+  const totalSalesAmt = ((selectedArticle === 'ALL' ? articles : articles.filter((item) => item.ArticleNo === selectedArticle))
+    .filter((item) => lobs.length === 0 || lobs.includes(item.LOB))
+    .filter((item) => mains.length === 0 || mains.includes(item.MainCategory)))
+    .map((item) => item.SalesAmt)
+    .reduce((acc, curr) => acc + curr, 0).toFixed(2);
+
+  // Styling for the button
+  const buttonStyle = { backgroundColor: '#83ed7e', color: 'black', fontWeight: 'bold' };
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -922,7 +931,6 @@ function formatIndianNumber(number) {
           </Col>
         </Row>
 
-        //come
         <Row gutter={16} style={{ marginTop: '20px' }}>
           <Col span={24}>
             <Card title="Article Data">
@@ -932,6 +940,28 @@ function formatIndianNumber(number) {
                   <Option key={articleNo} value={articleNo}>{articleNo}</Option>
                 ))}
               </Select>
+              <Select
+                mode="multiple"
+                placeholder="All Main Categories"
+                style={{ minWidth: '164px', marginLeft: '20px' }}
+                onChange={handleMainChange}
+                value={mains}
+              >
+                {Array.from(new Set(articles.map(item => item.MainCategory))).map(lob => (
+                  <Option key={lob}>{lob}</Option>
+                ))}
+              </Select>
+              {/* <Select
+                mode="multiple"
+                placeholder="All Descriptions"
+                style={{ minWidth: '140px', marginLeft: '20px' }}
+                onChange={handleDescChange}
+                value={descs}
+              >
+                {Array.from(new Set((selectedArticle == 'ALL' ? articles : articles.filter((item) => item.ArticleNo == selectedArticle)).filter((item) => lobs.length == 0 || lobs.includes(item.LOB)).filter((item)=> mains.length == 0 || mains.includes(item.MainCategory)).map(item => item.ArticleDesc))).map(lob => (
+                  <Option key={lob}>{lob}</Option>
+                ))}
+              </Select> */}
               <Select
                 mode="multiple"
                 placeholder="All Categories"
@@ -945,7 +975,11 @@ function formatIndianNumber(number) {
               </Select>
 
 
-              <Table dataSource={(selectedArticle == 'ALL' ? articles : articles.filter((item) => item.ArticleNo == selectedArticle)).filter((item)=> lobs.length == 0 || lobs.includes(item.LOB))} style={{ marginTop: '20px' }} columns={articleColumns} bordered scroll={{ x: true }} />
+              <Table pagination={mains.length != 1} dataSource={(selectedArticle == 'ALL' ? articles : articles.filter((item) => item.ArticleNo == selectedArticle)).filter((item) => lobs.length == 0 || lobs.includes(item.LOB)).filter((item) => mains.length == 0 || mains.includes(item.MainCategory))} style={{ marginTop: '20px' }} columns={articleColumns} bordered scroll={{ x: true }} />
+              <div style={{ marginTop: '10px', textAlign: 'right', fontWeight: 'bold' }}>
+               
+                <Button style={buttonStyle}> {`Total SalesAmt: ₹${totalSalesAmt}`}</Button>
+              </div>
             </Card>
             <Button onClick={handleExportToExcelArticle} type="primary" style={{ marginTop: '15px', backgroundColor: '#83ed7e', color: "black" }}>
               Export to Excel
