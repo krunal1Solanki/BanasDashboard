@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { Button, Layout, Menu, Dropdown } from 'antd';
-import { HomeOutlined, CalendarOutlined, MenuOutlined } from '@ant-design/icons';
+import {
+  HomeOutlined,
+  BarChartOutlined,
+  LineChartOutlined,
+  ShopOutlined,
+  MenuOutlined
+} from '@ant-design/icons';
+
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import './bird.css'
@@ -14,23 +21,27 @@ const HeaderBanas = () => {
     router.push(path);
     setMenuVisible(false);
   };
-
   const menu = (
     <Menu onClick={(e) => handleMenuClick(e.key)} theme="dark">
       <Menu.Item key="/">
         <HomeOutlined />
         {' '}Home
       </Menu.Item>
+      <Menu.Item key="/dashboard">
+        <BarChartOutlined />
+        {' '}Dashboard
+      </Menu.Item>
       <Menu.Item key="/year-dashboard">
-        <CalendarOutlined />
+        <LineChartOutlined />
         {' '}Year Data
       </Menu.Item>
       <Menu.Item key="/pivot">
-        <CalendarOutlined />
+        <ShopOutlined />
         {' '}Store Wise P&L
       </Menu.Item>
     </Menu>
   );
+  
 
 
   return (
@@ -49,7 +60,7 @@ const HeaderBanas = () => {
             <div className="bird bird-two"></div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent:'space-evenly', padding: '16px' }}>
-           <h2 style={{ margin: '0', color: '#fff',  whiteSpace: 'nowrap', marginRight: '50%'}}>Umang Mall Dashboard</h2>
+           <h2 style={{ margin: '0', color: '#fff',  whiteSpace: 'nowrap', marginRight: '50%', cursor: "pointer"}} onClick={()=> router.push('/')}>Umang Mall Dashboard</h2>
             <Dropdown overlay={menu} visible={menuVisible} onVisibleChange={(visible) => setMenuVisible(visible)}>
               <Button type="text" icon={<MenuOutlined />} style={{ color: 'white', fontSize: '1.2em', transition: 'color 0.3s', marginRight: '20%' }}>
                 Menu

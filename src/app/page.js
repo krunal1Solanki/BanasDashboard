@@ -4,14 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { Bar, } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto';
 import { registerables } from 'chart.js';
-import DynamicData from './Components/DynamicData'
 import { Layout, Typography, Card, Row, Col, Button, Select, Table, Divider, DatePicker } from 'antd';
 const { RangePicker } = DatePicker;
 import dayjs from 'dayjs'
 import Loader from './Components/Loader'
 import * as XLSX from 'xlsx';
 import ChartDataLabels from "chartjs-plugin-datalabels";
-
+import DynamicData  from './Components/DynamicData';
 import HeaderBanas from './Components/HeaderBanas';
 
 
@@ -23,34 +22,20 @@ const { Title } = Typography;
 const { Option } = Select;
 const Page = () => {
   const [salesData, setSalesData] = useState([]);
-  const [selectedArticle, setSelectedArticle] = useState('ALL');
   const [selectedYear, setSelectedYear] = useState('2023');
-  const [lobContributions, setLobContributions] = useState({});
   const [tableData, setTableData] = useState([]);
   const [NOB, setTotalNOB] = useState(0);
   const [loading, setLoading] = useState(1);
   const [Qty, setTotalQty] = useState(0);
-  const [articles, setShowArticles] = useState([])
   const [ABV, setTotalABV] = useState(0);
   const [ASP, setTotalASP] = useState(0);
-  const [selectedMonth, setSelectedMonth] = useState('ALL');
   const [selectedStores, setSelectedStores] = useState([]); // Change to an array for multi-select
-  const [lobs, setSelectedLobs] = useState([]); // Change to an array for multi-select
-  const [descs, setDescs] = useState([]); // Change to an array for multi-select
-  const [mains, setSelectedMains] = useState([]); // Change to an array for multi-select
 
-  const [selectedStoreType, setSelectedStoreType] = useState('ALL');
   const [selectedStoreType2, setSelectedStoreType2] = useState('ALL');
 
   const [totalSales, setTotalSales] = useState(0);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-  const [filteredData, setFilteredData] = useState([]);
-  const [articleTable, setArticleTable] = useState([]);
-  const [constTableData, setConstTableData] = useState([]);
-  const [filteredArticleData, setFilteredArticleData] = useState([]);
-  const [constFilteredTableData, setConstFilteredTableData] = useState([]);
-  const [lobTable, setLobTable] = useState([]);
   const [selectedStore, setSelectedStore] = useState('ALL');
 
   const handleStoreSelectionChange = (value) => {
@@ -83,10 +68,6 @@ const Page = () => {
     return formatter.format(number);
   }
 
-  const handleSelectChange = (value) => {
-    setSelectedArticle(value);
-  };
-
   const fetchDataQuery = async () => {
     setLoading(loading + 1)
     try {
@@ -109,103 +90,6 @@ const Page = () => {
       }, 1500)
     }
   };
-  const options = {
-    plugins: {
-      datalabels: {
-        display: true,
-        color: "black",
-        formatter: Math.round,
-        anchor: "end",
-        offset: -20,
-        align: "start"
-      }
-    },
-    legend: {
-      display: false
-    }
-  };
-
-  useEffect(() => {
-    console.log("REM INNININNIN")
-    let groupedData = filteredArticleData;
-    let map = new Map();
-    console.log("GROUP", groupedData)
-    if (selectedMonth === 'ALL') {
-      for (let i = 0; i < groupedData?.length; i++) {
-        const curr = groupedData[i];
-        const key = curr.StoreName + curr.LOB + curr.StoreType + curr.ArticleDesc + curr.ArticleNo;
-        if (!map.has(key)) {
-          map.set(key, { ...curr, MonthName: 'All Months', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
-        } else {
-          const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Qty: existing.Qty + curr.Qty, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
-        }
-      }
-    }
-    if (selectedMonth == 'ALL') {
-      groupedData = Array.from(map.values());
-    }
-    map = new Map()
-    if (!selectedStores || selectedStores.length == 0) {
-      for (let i = 0; i < groupedData?.length; i++) {
-        const curr = groupedData[i];
-        const key = curr.LOB + curr.StoreType + curr.ArticleDesc + curr.ArticleNo;
-        if (!map.has(key)) {
-          map.set(key, { ...curr, StoreName: 'All Store', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
-        } else {
-          const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Qty: existing.Qty + curr.Qty, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
-        }
-      }
-    }
-    if (selectedStores.length == 0)
-      groupedData = Array.from(map.values());
-
-    console.log("TESTING map", map)
-    setShowArticles(groupedData)
-
-  }, [filteredArticleData])
-
-  useEffect(() => {
-    console.log("REM INNININNIN")
-    let groupedData = filteredData;
-    let map = new Map();
-    if (selectedMonth === 'ALL') {
-      for (let i = 0; i < groupedData?.length; i++) {
-        const curr = groupedData[i];
-        const key = curr.StoreName + curr.LOB + curr.StoreType;
-        if (!map.has(key)) {
-          map.set(key, { ...curr, MonthName: 'All Months', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
-        } else {
-          const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
-        }
-      }
-    }
-    if (selectedMonth == 'ALL') {
-      groupedData = Array.from(map.values());
-    }
-    map = new Map()
-    if (!selectedStores || selectedStores.length == 0) {
-      for (let i = 0; i < groupedData?.length; i++) {
-        const curr = groupedData[i];
-        const key = curr.LOB + curr.StoreType;
-        if (!map.has(key)) {
-          map.set(key, { ...curr, StoreName: 'All Store', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
-        } else {
-          const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
-        }
-      }
-    }
-    if (selectedStores.length == 0)
-      groupedData = Array.from(map.values());
-    setLobTable(groupedData)
-
-  }, [filteredData])
-
-
-
 
 
   const handleDateRangeChange = (dates) => {
@@ -222,41 +106,6 @@ const Page = () => {
     fetchDataQuery();
   }, [startDate, endDate]);
 
-  useEffect(() => {
-    // Set filtered data whenever salesData changes
-    setFilteredData(
-      salesData?.filter(
-        (item) =>
-          validYearMonth(item.Yr, item.MonthName) &&
-          (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
-          (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-          (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
-      )
-    );
-
-
-    setFilteredArticleData(
-      articleTable?.filter(
-        (item) =>
-          validYearMonth(item.Yr, item.MonthName) &&
-          (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
-          (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-          (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
-      )
-    );
-
-
-    setConstFilteredTableData(
-      constTableData?.filter(
-        (item) =>
-          (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-          (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
-      )
-    );
-
-
-  }, [salesData, selectedYear, selectedMonth, selectedStores, selectedStoreType]);
-
 
 
   const validYearMonth = (itemYear, month) => {
@@ -271,9 +120,6 @@ const Page = () => {
       (itemYear === nextYear && validMonths.slice(9).includes(month)))
   }
 
-  useEffect(() => {
-    updateLobContribution()
-  }, [lobTable])
 
 
   const getYearLabel = (year) => {
@@ -484,12 +330,16 @@ const Page = () => {
       align: 'right',
       dataIndex: 'NOB',
       key: 'NOB',
+      render: (text) => formatIndianNumber(text)
+
     },
     {
       title: 'QTY',
       align: 'right',
       dataIndex: 'QTY',
       key: 'QTY',
+      render: (text) => formatIndianNumber(text)
+
     },
     {
       title: 'ABV',
@@ -594,201 +444,18 @@ const Page = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'TableData');
 
     // Save the workbook as an Excel file
-    const fileName = `TableData_${selectedYear}_${selectedMonth}_${selectedStoreType}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-  };
-
-  const handleExportToExcel = () => {
-    if (!lobTable || lobTable.length === 0) {
-      // console.warn('No data to export.');
-      return;
-    }
-
-    // Transform data for Excel format
-    const excelData = lobTable.map((item) => {
-      `${item.StoreName}_${item.LOB}_${item.MonthName}_${item.Yr}`
-      const key = `${item.StoreName}_${item.LOB}_${item.MonthName}_${item.Yr}`;
-      const lobContribution = lobContributions[key] || 0;
-
-      return {
-        'Store Name': item.StoreName,
-        'Line of Business (LOB)': item.LOB,
-        'Year': item.Yr,
-        'Month Name': item.MonthName,
-        'Sales Amount': item.salesAmt,
-        'Store Type': item.StoreType,
-        'LOB Contribution (%)': lobContribution,
-      };
-    });
-
-    // Create a worksheet
-    const ws = XLSX.utils.json_to_sheet(excelData);
-
-    // Create a workbook
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'SalesData');
-
-    // Save the workbook as an Excel file
-    const fileName = `SalesData_${selectedYear}_${selectedMonth}_${selectedStoreType}.xlsx`;
+    const fileName = `TableData.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
 
-  const transformDataForBarChart = () => {
-    if (!filteredData || filteredData.length === 0) {
-      return { labels: [], datasets: [] };
-    }
-
-    const groupedData = filteredData.filter((item) => item.MainCategory != 'FMCG').reduce((acc, item) => {
-      const mainCategory = item.MainCategory;
-      const salesAmtInLacs = (acc[mainCategory] || 0) + item.salesAmt / 100000; // Divide by 100,000 to convert to lacs
-      acc[mainCategory] = salesAmtInLacs;
-      return acc;
-    }, {});
-
-    const labels = Object.keys(groupedData);
-    const data = Object.values(groupedData);
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Sales Amount (in lacs)',
-          data,
-          backgroundColor: [
-            '#99f587',
-          ],
-        },
-      ],
-    };
-  };
 
 
-
-  const getCurrentFinancialYear = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-
-    // Financial year starts from April
-    const startYear = currentMonth >= 3 ? currentYear : currentYear - 1;
-    const endYear = startYear + 1;
-
-    return `${startYear}-${endYear}`;
-  };
-
-  // Function to render year options
-  const renderYearOptions = () => {
-    const currentFinancialYear = getCurrentFinancialYear();
-
-    return Array.from(new Set(salesData?.map((item) => item.Yr)))
-      .filter((year) => year <= currentFinancialYear)  // Only show years up to the current financial year
-      .sort((a, b) => parseInt(b) - parseInt(a))
-      .map((year) => (
-        <Option key={year} value={year}>
-          {getYearLabel(year)}
-        </Option>
-      ));
-  };
-  const handleExportToExcelArticle = () => {
-    if (!articles || articles.length === 0) {
-      // console.warn('No data to export.');
-      return;
-    }
-    const data = (selectedArticle == 'ALL' ? articles : articles.filter((item) => item.ArticleNo == selectedArticle)).filter((item) => lobs.length == 0 || lobs.includes(item.LOB)).filter((item) => mains.length == 0 || mains.includes(item.MainCategory))
-    if (!data || data.length == 0) return;
-    // Transform data for Excel format
-    const excelData = data.map((item) => ({
-      'Article No': item.ArticleNo,
-      'Description': item.ArticleDesc,
-      'Line of Business (LOB)': item.LOB,
-      'Year': item.Yr,
-      'Month Name': item.MonthName,
-      'Store Name': item.StoreName,
-      'Qty': item.Qty,
-      'Sales Amt': item.SalesAmt,
-    }));
-
-    // Create a worksheet
-    const ws = XLSX.utils.json_to_sheet(excelData);
-
-    // Create a workbook
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'ArticleData');
-
-    // Save the workbook as an Excel file
-    const fileName = `ArticleData_${selectedYear}_${selectedMonth}_${selectedStoreType}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-  };
-
-  const transformDataForStoresBarChart = () => {
-    const storeData = filteredData?.reduce((acc, item) => {
-      acc[item.StoreName] = (acc[item.StoreName] || 0) + item.salesAmt / 100000; // Divide by 100,000 to convert to lacs
-      return acc;
-    }, {});
-
-    if (!storeData || Object.keys(storeData).length === 0) {
-      return { labels: [], datasets: [] };
-    }
-
-    const labels = Object.keys(storeData);
-    const data = Object.values(storeData);
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Total Sales (in lacs)',
-          data,
-          backgroundColor: '#99f587',
-        },
-      ],
-    };
-  };
-
-  const handleYearChange = (value) => {
-    setSelectedYear(value);
-  };
-
-  const handleMonthChange = (value) => {
-    setSelectedMonth(value);
-  };
-
-
-  const handleLOBChange = (selectedValues) => {
-    setSelectedLobs(selectedValues);
-  };
-  const handleDescChange = (s) => {
-    setDescs(s)
-  }
-  const handleMainChange = (selectedValues) => {
-    setSelectedMains(selectedValues)
-  }
-
-  useEffect(() => {
-    console.log("THIS")
-  }, [lobs])
-
-  const handleStoreChange = (value) => {
-    setSelectedStores(value);
-  };
-
-  const handleStoreTypeChange = (value) => {
-    setSelectedStoreType(value);
-  };
 
   const handleStoreTypeChange2 = (value) => {
     setSelectedStoreType2(value);
   };
-  const totalSalesAmt = ((selectedArticle === 'ALL' ? articles : articles.filter((item) => item.ArticleNo === selectedArticle))
-    .filter((item) => lobs.length === 0 || lobs.includes(item.LOB))
-    .filter((item) => mains.length === 0 || mains.includes(item.MainCategory)))
-    .map((item) => item.SalesAmt)
-    .reduce((acc, curr) => acc + curr, 0).toFixed(2);
-
-  // Styling for the button
-  const buttonStyle = { backgroundColor: '#83ed7e', color: 'black', fontWeight: 'bold' };
-
+ 
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {/* {console.log("PIKACHUUU", process.env.NEXT_PUBLIC_DB_SERVER)} */}
@@ -851,158 +518,10 @@ const Page = () => {
             </Card>
           </Col>
         </Row>
-        <Divider />
-        <Divider />
-
-        <div style={{ display: 'flex', gap: '10px', marginLeft: '2%', marginTop: '2%' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Select defaultValue="2023" style={{ width: 120 }} onChange={handleYearChange}>
-              {renderYearOptions()}
-            </Select>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Select defaultValue="ALL" style={{ width: 120 }} onChange={handleMonthChange}>
-              <Option value="ALL">All Months</Option>
-              {[
-                'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March',
-              ].map((month) => (
-                <Option key={month} value={month}>
-                  {month}
-                </Option>
-              ))}
-            </Select>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Select defaultValue="ALL" style={{ width: 120, minWidth: '140px' }} onChange={handleStoreTypeChange}>
-              <Option value="ALL">All Store Types</Option>
-              {Array.from(new Set(salesData?.map((item) => item.StoreType))).map((storeType) => (
-                <Option key={storeType} value={storeType}>
-                  {/* {console.log("PIKA", storeType)} */}
-                  {storeType}
-                </Option>
-              ))}
-            </Select>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Select
-              mode="multiple"
-              placeholder="All Stores"
-              style={{ width: '100%', minWidth: '120px' }}
-              onChange={handleStoreChange}
-              value={selectedStores}
-            >
-              {Array.from(new Set(salesData?.map((item) => `${item.StoreName}_${item.StoreType}`)))
-                .filter((combinedKey) => {
-                  const [storeName, storeType] = combinedKey.split('_');
-                  return selectedStoreType === 'ALL' || selectedStoreType === storeType;
-                })
-                .map((combinedKey) => {
-                  const [storeName, storeType] = combinedKey.split('_');
-                  return (
-                    <Option key={storeName} value={storeName} data-store-type={storeType}>
-                      {storeName}
-                    </Option>
-                  );
-                })}
-            </Select>
-          </div>
-        </div>
-
-        <Row gutter={16} style={{ marginBottom: '20px', marginTop: '20px' }}>
-          <Col span={24}>
-            {selectedStores.length != 1 && <Card title="Sales Data for Stores" style={{ width: '100%' }}>
-              <Bar options={options} data={transformDataForStoresBarChart()} />
-            </Card>}
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={8}>
-            <Card title="Main Category Wise Sales (Ghee | Oil | Tea)" style={{ height: '100%', display: 'flex', flexDirection: 'column', }}>
-              <Bar options={{ ...options, maintainAspectRatio: false }} data={transformDataForBarChart()} style={{ width: "100%", height: '54vh' }} />
-            </Card>
-          </Col>
-          <Col span={16}>
-            <Card title="LOB Wise" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <Bar options={{ ...options, maintainAspectRatio: false }} data={transformDataForDoughnutChart()} style={{ width: '100%' }} />
-            </Card>
-          </Col>
-        </Row>
-
-        <Row gutter={16} style={{ marginTop: '20px' }}>
-          <Col span={24}>
-            <Card title="Article Data">
-              <Select value={selectedArticle} style={{ width: 200 }} defaultValue={'ALL'} onChange={handleSelectChange}>
-                <Option value="ALL">All Articles</Option>
-                {[...new Set(articles.map(article => article.ArticleNo))].map(articleNo => (
-                  <Option key={articleNo} value={articleNo}>{articleNo}</Option>
-                ))}
-              </Select>
-              <Select
-                mode="multiple"
-                placeholder="All Main Categories"
-                style={{ minWidth: '164px', marginLeft: '20px' }}
-                onChange={handleMainChange}
-                value={mains}
-              >
-                {Array.from(new Set(articles.map(item => item.MainCategory))).map(lob => (
-                  <Option key={lob}>{lob}</Option>
-                ))}
-              </Select>
-              {/* <Select
-                mode="multiple"
-                placeholder="All Descriptions"
-                style={{ minWidth: '140px', marginLeft: '20px' }}
-                onChange={handleDescChange}
-                value={descs}
-              >
-                {Array.from(new Set((selectedArticle == 'ALL' ? articles : articles.filter((item) => item.ArticleNo == selectedArticle)).filter((item) => lobs.length == 0 || lobs.includes(item.LOB)).filter((item)=> mains.length == 0 || mains.includes(item.MainCategory)).map(item => item.ArticleDesc))).map(lob => (
-                  <Option key={lob}>{lob}</Option>
-                ))}
-              </Select> */}
-              <Select
-                mode="multiple"
-                placeholder="All Categories"
-                style={{ minWidth: '140px', marginLeft: '20px' }}
-                onChange={handleLOBChange}
-                value={lobs}
-              >
-                {Array.from(new Set(articles.map(item => item.LOB))).map(lob => (
-                  <Option key={lob}>{lob}</Option>
-                ))}
-              </Select>
-
-
-              <Table pagination={mains.length != 1} dataSource={(selectedArticle == 'ALL' ? articles : articles.filter((item) => item.ArticleNo == selectedArticle)).filter((item) => lobs.length == 0 || lobs.includes(item.LOB)).filter((item) => mains.length == 0 || mains.includes(item.MainCategory))} style={{ marginTop: '20px' }} columns={articleColumns} bordered scroll={{ x: true }} />
-              <div style={{ marginTop: '10px', textAlign: 'right', fontWeight: 'bold' }}>
-               
-                <Button style={buttonStyle}> {`Total SalesAmt: ₹${totalSalesAmt}`}</Button>
-              </div>
-            </Card>
-            <Button onClick={handleExportToExcelArticle} type="primary" style={{ marginTop: '15px', backgroundColor: '#83ed7e', color: "black" }}>
-              Export to Excel
-            </Button>
-          </Col>
-        </Row>
-        {/* {console.log("FILTERED", filteredData)} */}
-        <Divider />
-        <Divider />
-        <Row gutter={16} style={{ marginTop: '20px' }}>
-          <Col span={24}>
-            <Card title=" LOB Summary Table">
-              <Table dataSource={lobTable} scroll={{ x: true }} bordered columns={columns} pagination={{ pageSize: 30 }} />
-            </Card>
-            <Button onClick={handleExportToExcel} type="primary" style={{ marginTop: '15px', backgroundColor: '#83ed7e', color: "black" }}>
-              Export to Excel
-            </Button>
-          </Col>
-        </Row>
-        <Divider />
       </Content>}
     </Layout>
   );
 };
 
 export default Page;
+

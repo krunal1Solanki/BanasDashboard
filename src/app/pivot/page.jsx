@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Layout, Table, Switch, Button, Select } from 'antd';
 import { BarChartOutlined, TableOutlined } from '@ant-design/icons';
 import moment from 'moment';
+import './pivot.css'
 import axios from 'axios';
 import { saveAs } from 'file-saver';
 import { Bar } from 'react-chartjs-2';
@@ -21,13 +22,20 @@ const { Header, Content } = Layout;
 const { Option } = Select;
 
 const Page = () => {
+    const getCurrentMonthName = () => {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const currentDate = new Date();
+        const previousMonthIndex = (currentDate.getMonth() - 1 + 12) % 12; // Taking care of wrapping around to previous year
+        return months[previousMonthIndex];
+    };
     const [salesData, setSalesData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedYear, setSelectedYear] = useState('2023-24');
-    const [selectedMonth, setSelectedMonth] = useState('ALL');
+    const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthName());
     const [selectedStores, setSelectedStores] = useState([]);
-    const [selectedStoreType, setSelectedStoreType] = useState('');
+    const [selectedStoreType, setSelectedStoreType] = useState('ALL');
     const [tableView, setTableView] = useState(true);
+
 
     useEffect(() => {
         fetchData();
@@ -104,39 +112,44 @@ const Page = () => {
         }
     };
 
-    useEffect(()=> {
+    useEffect(() => {
         getPivotedData()
-    }, [selectedYear, selectedMonth])
+    }, [selectedYear, selectedMonth, selectedStoreType])
 
     const getPivotedData = () => {
         let filteredData = selectedStores.length > 0
-                    ? salesData.filter(item => selectedStores.includes(item.StoreName) && (!selectedStoreType || item.StoreType === selectedStoreType))
+            ? salesData.filter(item => selectedStores.includes(item.StoreName))
             : salesData;
 
-        console.log("BEFORE", filteredData, selectedYear)
-        filteredData = selectedYear == 'ALL' ? filteredData  : filteredData.filter((item) => item.Yr == selectedYear)
-        filteredData = selectedMonth == 'ALL' ? filteredData  : filteredData.filter((item) => item.MonthName == selectedMonth)
-        console.log("CHANGE", filteredData.map((item)=> item.MonthName))
-        
-        const pivotedData = {};
+        console.log("FILTERED BEFOREE", filteredData.length, selectedStoreType)
+
+        filteredData = selectedStoreType == 'ALL' ? filteredData : filteredData.filter((item) => item.StoreType == selectedStoreType);
+        console.log("FILTERED 2", filteredData.length)
+
+        filteredData = selectedYear == 'ALL' ? filteredData : filteredData.filter((item) => item.Yr == selectedYear);
+        console.log("FILTERED 3", filteredData.length)
+        filteredData = selectedMonth == 'ALL' ? filteredData : filteredData.filter((item) => item.MonthName == selectedMonth);
+
+        console.log("FILTERED 4", filteredData.length)
+
+        let pivotedData = {};
 
         filteredData.forEach(item => {
             const storeName = item.StoreName;
             const particular = item.Particular;
             const balance = typeof item.Balance === 'number' ? item.Balance : 0;
-
-            if (!selectedStoreType || item.StoreType === selectedStoreType) {
-                if (!pivotedData[particular]) {
-                    pivotedData[particular] = {};
-                }
-                pivotedData[particular][storeName] = balance;
+            console.log("FILTERED ENDD", selectedStoreType)
+            if (!pivotedData[particular]) {
+                pivotedData[particular] = {};
             }
+            pivotedData[particular][storeName] = balance;
+
         });
+        console.log("FILTERED 5", filteredData, pivotedData)
 
         // Calculate totals for each column
         const columnTotals = {};
         Object.entries(pivotedData).forEach(([parentKey, balances]) => {
-            console.log("NEXT Parent Key:", parentKey);
             if (parentKey == '5. Gross Profit') return;
             Object.entries(balances).forEach(([storeName, balance]) => {
                 console.log("NEXT Child Key:", storeName, "Balance:", balance);
@@ -144,26 +157,79 @@ const Page = () => {
             });
         });
 
+        console.log("FILTERED 6.1", pivotedData)
+        // Add a row for total
+        pivotedData['Net Profit'] = columnTotals;
+        console.log("FILTERED 6.2", pivotedData)
 
-        // Add a row for totals
-        pivotedData['Total'] = columnTotals;
 
-        // Transform data for output
-        return Object.entries(pivotedData).map(([particular, balances]) => ({
+
+        let netPercent = {}
+        let grossPercent = {}
+        if (pivotedData['1. Sales Accounts'])
+            for (const [key, value] of Object.entries(pivotedData['1. Sales Accounts'])) {
+                const percent = (pivotedData['Net Profit'][key] / value) * 100.0;
+                netPercent[key] = `${percent.toFixed(2)}%`
+            }
+
+        if (pivotedData['5. Gross Profit'])
+            for (const [key, value] of Object.entries(pivotedData['5. Gross Profit'])) {
+                const percent = (value / pivotedData['1. Sales Accounts'][key]) * 100.0;
+                console.log("SALES", value, pivotedData['1. Sales Accounts'][key], percent.toFixed(2))
+
+                grossPercent[key] = `${percent.toFixed(2)}%`
+            }
+
+
+        pivotedData['Net Profit (%)'] = netPercent;
+        pivotedData['5.2 Gross Profit (%)'] = grossPercent;
+
+        if ('5.2 Gross Profit (%)' in pivotedData) {
+            const grossProfitIndex = Object.keys(pivotedData).indexOf('5. Gross Profit');
+            if (grossProfitIndex !== -1) {
+                let keys = Object.keys(pivotedData);
+                keys.splice(grossProfitIndex + 1, 0, '5.2 Gross Profit (%)');
+                let pivotedDataCopy = {};
+
+                keys.forEach(key => {
+                    pivotedDataCopy[key] = pivotedData[key];
+                });
+
+                pivotedData = pivotedDataCopy;
+            }
+        }
+        console.log("FILTERED 6", pivotedData)
+        console.log("FILTERED RETURN", Object.entries(pivotedData).map(([particular, balances]) => ({
+            Particular: particular,
+            ...balances,
+        })))
+
+
+        const data = Object.entries(pivotedData).map(([particular, balances]) => ({
             Particular: particular,
             ...balances,
         }));
+        console.log("FINALDATA", data)
+        return data;
     };
 
 
 
+    const highlightRow = (record) => {
+        if (record.Particular === 'Net Profit' || record.Particular === '5. Gross Profit' || record.Particular === '5.2 Gross Profit (%)' || record.Particular === 'Net Profit (%)') {
+            return 'highlighted-row';
+        }
+        return '';
+    };
+
+    
     function formatIndianNumber(number) {
         const formatter = new Intl.NumberFormat('en-IN');
         return formatter.format(number);
     }
 
     const getPivotedColumns = () => {
-        const storeNamesToShow = selectedStores.length > 0 ? selectedStores : salesData.filter((item) => selectedStoreType.length == 0 || selectedStoreType == item.StoreType).map(item => item.StoreName);
+        const storeNamesToShow = selectedStores.length > 0 ? selectedStores : salesData.filter((item) => selectedStoreType == 'ALL' || selectedStoreType == item.StoreType).map(item => item.StoreName);
         const uniqueStoreNames = Array.from(new Set(storeNamesToShow));
 
         const columns = [
@@ -174,7 +240,7 @@ const Page = () => {
                 key: 'Particular',
                 render: (text, record) => {
                     console.log("MAP", record);
-                    const isTotal = record.Particular === 'Total' || record.Particular == '5. Gross Profit';
+                    const isTotal = record.Particular === 'Net Profit' || record.Particular == '5. Gross Profit';
                     const style = isTotal ? { fontWeight: 'bold' } : {};
                     return <span style={{ whiteSpace: 'nowrap', ...style }}>{text}</span>;
                 },
@@ -185,9 +251,9 @@ const Page = () => {
                 align: 'right',
                 key: storeName,
                 render: (text, record) => {
-                    const isTotal = record.Particular === 'Total' || record.Particular == '5. Gross Profit';
+                    const isTotal = record.Particular === 'Net Profit' || record.Particular == '5. Gross Profit';
                     const color = isTotal ? (parseInt(text) >= 0 ? 'green' : 'red') : '';
-                    const value = isNaN(parseInt(text)) ? 0 : parseInt(text);
+                    const value = isNaN(parseInt(text)) ? 0 : !(text + "").includes('%') ? parseInt(text) : text;
                     const style = isTotal ? { fontWeight: 'bold' } : {};
                     return <span style={{ color, ...style }}>{value}</span>;
                 },
@@ -207,7 +273,7 @@ const Page = () => {
 
     const getBarChartData = () => {
         const filteredData = selectedStores.length > 0 ? salesData.filter(item => selectedStores.includes(item.StoreName) && (!selectedStoreType || item.StoreType === selectedStoreType)) : salesData;
-        const totalBalances = getPivotedData(filteredData).find(item => item.Particular === 'Total');
+        const totalBalances = getPivotedData(filteredData).find(item => item.Particular === 'Net Profit');
         const storeNames = Object.keys(totalBalances).filter(key => key !== 'Particular');
         const balances = storeNames.map(storeName => totalBalances[storeName]);
 
@@ -267,8 +333,9 @@ const Page = () => {
                             placeholder="Select store type"
                             onChange={handleStoreTypeSelectChange}
                             value={selectedStoreType}
+                            defaultValue={'ALL'}
                         >
-                            <Option value={''}>All Store Types</Option>
+                            <Option value={'ALL'}>All Store Types</Option>
                             <Option value="DCS">DCS</Option>
                             <Option value="Franchise">Franchise</Option>
                         </Select>
@@ -279,7 +346,7 @@ const Page = () => {
                             onChange={handleStoreSelectChange}
                             value={selectedStores}
                         >
-                            {[...new Set(salesData?.filter((item) => selectedStoreType.length === 0 || selectedStoreType === item.StoreType).map(item => item.StoreName))].map(storeName => (
+                            {[...new Set(salesData?.filter((item) => selectedStoreType == 'ALL' || selectedStoreType === item.StoreType).map(item => item.StoreName))].map(storeName => (
                                 <Option key={storeName} value={storeName}>
                                     {storeName}
                                 </Option>
@@ -307,7 +374,7 @@ const Page = () => {
                 <h2>Store Wise P&L</h2>
                 {tableView ? (
                     <>
-                        <Table dataSource={getPivotedData()} columns={getPivotedColumns()} bordered scroll={{ x: true }} />
+                        <Table dataSource={getPivotedData()} rowClassName={highlightRow} columns={getPivotedColumns()} bordered scroll={{ x: true }} />
                         <Button onClick={handleExportToExcel} style={{ marginTop: '15px', backgroundColor: '#83ed7e', color: "black", marginTop: '15px' }} type="primary">
                             Export to Excel
                         </Button>
