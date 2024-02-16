@@ -408,7 +408,6 @@ const Year = () => {
 
   return (
     <Layout className="dashboard-layout">
-      <HeaderBanas />
       {loading ? <div style={{height: '100vh',display:  'flex', alignItems: 'center', justifyContent: 'center'}}><Loader size='large'/></div> : <Content className="dashboard-content">
        <Space direction="vertical" style={{ padding: '20px', width: '100%' }}>
           <div className="year-selector">

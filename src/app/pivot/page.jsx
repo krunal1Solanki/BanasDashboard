@@ -305,7 +305,6 @@ const Page = () => {
 
     return (
         <Layout style={{ minHeight: '100vh' }}>
-            <HeaderBanas />
             {loading ? <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader size='large' /></div> : <Content style={{ padding: '24px' }}>
                 <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 

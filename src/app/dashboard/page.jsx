@@ -5,13 +5,10 @@ import { Bar, } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto';
 import { registerables } from 'chart.js';
 import { Layout, Typography, Card, Row, Col, Button, Select, Table, Divider, DatePicker } from 'antd';
-const { RangePicker } = DatePicker;
-import dayjs from 'dayjs'
 import Loader from '../Components/Loader'
 import * as XLSX from 'xlsx';
 import ChartDataLabels from "chartjs-plugin-datalabels";
 
-import HeaderBanas from '../Components/HeaderBanas';
 
 
 // Register necessary Chart.js components
@@ -21,6 +18,13 @@ const { Header, Content } = Layout;
 const { Title } = Typography;
 const { Option } = Select;
 const Page = () => {
+  const getCurrentMonthName = () => {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const currentDate = new Date();
+    const previousMonthIndex = (currentDate.getMonth() - 1 + 12) % 12; // Taking care of wrapping around to previous year
+    return months[previousMonthIndex];
+};
+
   const [salesData, setSalesData] = useState([]);
   const [selectedArticle, setSelectedArticle] = useState('ALL');
   const [selectedYear, setSelectedYear] = useState('2023');
@@ -32,15 +36,17 @@ const Page = () => {
   const [articles, setShowArticles] = useState([])
   const [ABV, setTotalABV] = useState(0);
   const [ASP, setTotalASP] = useState(0);
-  const [selectedMonth, setSelectedMonth] = useState('ALL');
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthName());
   const [selectedStores, setSelectedStores] = useState([]); // Change to an array for multi-select
   const [lobs, setSelectedLobs] = useState([]); // Change to an array for multi-select
   const [descs, setDescs] = useState([]); // Change to an array for multi-select
   const [mains, setSelectedMains] = useState([]); // Change to an array for multi-select
 
+  
+  
   const [selectedStoreType, setSelectedStoreType] = useState('ALL');
   const [selectedStoreType2, setSelectedStoreType2] = useState('ALL');
-
+  
   const [totalSales, setTotalSales] = useState(0);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -51,6 +57,8 @@ const Page = () => {
   const [constFilteredTableData, setConstFilteredTableData] = useState([]);
   const [lobTable, setLobTable] = useState([]);
   const [selectedStore, setSelectedStore] = useState('ALL');
+  
+  
 
   const handleStoreSelectionChange = (value) => {
     setSelectedStore(value);
@@ -58,6 +66,7 @@ const Page = () => {
 
 
   useEffect(() => {
+    console.log("2")
     if (selectedStore == 'ALL') {
       setTotalABV(0);
       setTotalASP(0);
@@ -125,10 +134,17 @@ const Page = () => {
   };
 
   useEffect(() => {
-    console.log("REM INNININNIN")
+    console.log("3")
+
+    // console.log("REM INNININNIN")
     let groupedData = filteredArticleData;
+
+    console.log("SOME SOME", filteredArticleData)
+    let sum = 0;
+    for(let i = 0; i < filteredArticleData.length; i ++) sum += filteredArticleData[i].SalesAmt;
+    console.log("SOME SOME SUM", sum);
     let map = new Map();
-    console.log("GROUP", groupedData)
+    // console.log("GROUP", groupedData)
     if (selectedMonth === 'ALL') {
       for (let i = 0; i < groupedData?.length; i++) {
         const curr = groupedData[i];
@@ -137,7 +153,7 @@ const Page = () => {
           map.set(key, { ...curr, MonthName: 'All Months', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Qty: existing.Qty + curr.Qty, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
+          map.set(key, { ...existing, SalesAmt: existing.SalesAmt + curr.SalesAmt, Qty: existing.Qty + curr.Qty, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
         }
       }
     }
@@ -153,22 +169,50 @@ const Page = () => {
           map.set(key, { ...curr, StoreName: 'All Store', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Qty: existing.Qty + curr.Qty, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
+          map.set(key, { ...existing, SalesAmt: existing.SalesAmt + curr.SalesAmt, Qty: existing.Qty + curr.Qty, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
         }
       }
     }
+    console.log("MAP CONSOLE 1", map)
+
     if (selectedStores.length == 0)
       groupedData = Array.from(map.values());
 
-    console.log("TESTING map", map)
+    // console.log("TESTING map", map)
     setShowArticles(groupedData)
 
   }, [filteredArticleData])
 
   useEffect(() => {
-    console.log("REM INNININNIN")
+    console.log("4")
+
+    // console.log("REM INNININNIN")
     let groupedData = filteredData;
+    
     let map = new Map();
+    // console.log("THIS IS MY ALL DATA", filteredData)
+   
+
+    if (selectedStoreType === 'ALL') {
+      for (let i = 0; i < groupedData?.length; i++) {
+        const curr = groupedData[i];
+        const key = curr.StoreName + curr.LOB;
+        if (!map.has(key)) {
+          map.set(key, { ...curr, MonthName: 'All Months', Yr: getYearLabel(selectedYear), StoreType : "All Store Types" }); // Initialize with MonthName as 'All Months'
+        } else {
+          const existing = map.get(key);
+          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Yr: getYearLabel(selectedYear), StoreType: "All Store Types" }); // Sum up sales amounts
+        }
+      }
+    }
+    if (selectedStoreType == 'ALL') {
+      groupedData = Array.from(map.values());
+    }
+    map = new Map()
+
+
+
+
     if (selectedMonth === 'ALL') {
       for (let i = 0; i < groupedData?.length; i++) {
         const curr = groupedData[i];
@@ -199,6 +243,12 @@ const Page = () => {
     }
     if (selectedStores.length == 0)
       groupedData = Array.from(map.values());
+      groupedData.sort((a, b) => {
+        // Assuming LOB is a string field, use localeCompare for string comparison
+        return a.LOB.localeCompare(b.LOB);
+      });
+      
+      
     setLobTable(groupedData)
 
   }, [filteredData])
@@ -218,10 +268,14 @@ const Page = () => {
   };
 
   useEffect(() => {
+    console.log("6")
+
     fetchDataQuery();
   }, [startDate, endDate]);
 
   useEffect(() => {
+    console.log("7")
+
     // Set filtered data whenever salesData changes
     setFilteredData(
       salesData?.filter(
@@ -233,17 +287,15 @@ const Page = () => {
       )
     );
 
-
     setFilteredArticleData(
       articleTable?.filter(
         (item) =>
           validYearMonth(item.Yr, item.MonthName) &&
           (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
           (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-          (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
+          (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType) && (mains.length == 0 || mains.includes(item.MainCategory)) 
       )
     );
-
 
     setConstFilteredTableData(
       constTableData?.filter(
@@ -252,7 +304,6 @@ const Page = () => {
           (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
       )
     );
-
 
   }, [salesData, selectedYear, selectedMonth, selectedStores, selectedStoreType]);
 
@@ -271,6 +322,8 @@ const Page = () => {
   }
 
   useEffect(() => {
+    console.log("9")
+
     updateLobContribution()
   }, [lobTable])
 
@@ -355,6 +408,8 @@ const Page = () => {
   ];
 
   useEffect(() => {
+    console.log("10")
+
     fetchData();
   }, []);
 
@@ -491,7 +546,7 @@ const Page = () => {
       return { labels: [], datasets: [] };
     }
 
-    console.log("TEA FILTERED DATA", filteredData)
+    // console.log("TEA FILTERED DATA", filteredData)
 
     const groupedData = filteredData.filter((item) => item.MainCategory != 'FMCG').reduce((acc, item) => {
       const mainCategory = item.MainCategory;
@@ -516,6 +571,7 @@ const Page = () => {
       ],
     };
   };
+
 
 
 
@@ -619,9 +675,6 @@ const Page = () => {
     setSelectedMains(selectedValues)
   }
 
-  useEffect(() => {
-    console.log("THIS")
-  }, [lobs])
 
   const handleStoreChange = (value) => {
     setSelectedStores(value);
@@ -648,9 +701,6 @@ const Page = () => {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {/* {console.log("PIKACHUUU", process.env.NEXT_PUBLIC_DB_SERVER)} */}
-      <HeaderBanas />
-
-
       {loading == 1 ? <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader size='large' /></div> : <Content style={{ padding: '24px', minHeight: 'calc(100vh - 64px)', }}>
 
 
@@ -662,7 +712,7 @@ const Page = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Select defaultValue="ALL" style={{ width: 120 }} onChange={handleMonthChange}>
+            <Select  style={{ width: 120 }} value={selectedMonth} onChange={handleMonthChange}>
               <Option value="ALL">All Months</Option>
               {[
                 'April', 'May', 'June',

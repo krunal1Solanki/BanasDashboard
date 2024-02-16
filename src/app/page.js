@@ -459,7 +459,6 @@ const Page = () => {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {/* {console.log("PIKACHUUU", process.env.NEXT_PUBLIC_DB_SERVER)} */}
-      <HeaderBanas />
 
       <Divider />
 
