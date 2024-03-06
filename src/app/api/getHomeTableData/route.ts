@@ -1,6 +1,8 @@
 import { connect } from '../../dbConfig/database';
 import { NextRequest, NextResponse } from 'next/server';
 import sql from 'mssql';
+const moment = require('moment');
+
 // Database connection configuration
 const dbConfig = {
     server: process.env.NEXT_PUBLIC_DB_SERVER,
@@ -27,40 +29,59 @@ const executeQuery = async (query) => {
 // Connect to the database on server start
 // connect();
 
+function getLastFirstDateOfPreviousMonth() {
+const today = moment(); // Get today's date
+const firstDayOfPreviousMonth = today.clone().subtract(1, 'months').startOf('month');
+const lastDayOfPreviousMonth = today.clone().subtract(1, 'months').endOf('month');
+
+const startDateString = firstDayOfPreviousMonth.format('YYYY-MM-DD');
+const endDateString = lastDayOfPreviousMonth.format('YYYY-MM-DD');
+
+console.log("AFTERRR", startDateString, endDateString);
+
+return {
+    startDateString,
+    endDateString
+};
+}
+
+
+
 export async function POST(request: NextRequest, params: any) {
     try {
         // Example query to fetch data from MonthWiseSales table
+        console.log("INN")
         const body = await request.json();
-        const { startDate, endDate } = body;
+        let { startDate, endDate } = body;
+
+        if(!startDate && !endDate) {
+            const { startDateString, endDateString } = getLastFirstDateOfPreviousMonth();
+            startDate = startDateString;
+            endDate = endDateString;
+        }
+
 
         if (!startDate || !endDate) {
             return NextResponse.json({
                 message: "Please enter complete range of date"
             })
         }
-        console.log(body)
+        console.log("HOME",{startDate, endDate})
 
-        const query3 = `SELECT [StoreOpenDt], ds.[StoreName], SUM(FTD) AS FTD, SUM([NOB]) AS [NOB], SUM(QTY) AS QTY,
-        ABV = SUM(FTD) / SUM([NOB]),
-        UPT = SUM(QTY) / SUM([NOB]),
-        ASP = SUM(FTD) / SUM(QTY),
-        dsm.ActMTD,
-        StoreType,
-        AvgSalesPerDay = dsm.ActMTD / (DATEDIFF(day, '${startDate}', '${endDate}') + 1),
-        dsy.ActYTD
-FROM DailySalesRpt ds
-left join (Select [StoreName],SUM(FTD) as ActMTD from DailySalesRpt where Dt >= '${startDate}' AND Dt <= '${endDate}' group by [StoreName]) dsm on dsm.[StoreName] = ds.[StoreName]
-left join (Select [StoreName],SUM(FTD) as ActYTD from DailySalesRpt where Dt <= '${endDate}' group by [StoreName]) dsy on dsy.[StoreName] = ds.[StoreName]
-WHERE Dt >= '${startDate}' AND Dt <= '${endDate}'
-GROUP BY [StoreOpenDt], ds.[StoreName], StoreType, dsm.ActMTD, dsy.ActYTD
-ORDER BY [StoreOpenDt], ds.[StoreName]`;
+        // const query3 = 'SELECT * FROM MonthWiseSales order by StoreOpenDt'
+        const query3 = `SELECT * FROM MonthWiseSales WHERE Dt >= '${startDate}' AND Dt <= '${endDate}' order by StoreOpenDt`;
+
+        // const query4 = 'SELECT * FROM [CategorWiseSales] ORDER BY ArticleNo'
+        const query4 = `SELECT * FROM [CategorWiseSales] WHERE Dt >= '${startDate}' AND Dt <= '${endDate}' ORDER BY ArticleNo`
 
 
         const result3 = await executeQuery(query3);
+        const data4 = await executeQuery(query4);
 
         return NextResponse.json({
 
-            data3: result3
+            data3: result3,
+            data4 
         });
     } catch (err: any) {
         return NextResponse.json({

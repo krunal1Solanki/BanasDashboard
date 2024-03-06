@@ -96,21 +96,30 @@ const Page = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            let url = '/api/getData';
-            const response = await axios.get(url);
-            const sortedData = response.data.data2.sort((a, b) => a.Particular.charCodeAt(0) - b.Particular.charCodeAt(0));
-            const formattedData = sortedData.map(item => ({
-                ...item,
-                FromDt: moment(item.FromDt).format('YYYY-MM-DD'),
-                ToDt: moment(item.ToDt).format('YYYY-MM-DD'),
-            }));
-            setSalesData(formattedData);
+          let url = '/api/getData';
+          const response = await fetch(url);
+      
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+      
+          const data = await response.json();
+      
+          const sortedData = data.data2.sort((a, b) => a.Particular.charCodeAt(0) - b.Particular.charCodeAt(0));
+          const formattedData = sortedData.map(item => ({
+            ...item,
+            FromDt: moment(item.FromDt).format('YYYY-MM-DD'),
+            ToDt: moment(item.ToDt).format('YYYY-MM-DD'),
+          }));
+      
+          setSalesData(formattedData);
         } catch (error) {
-            console.error('Error fetching data:', error);
+          console.error('Error fetching data:', error);
         } finally {
-            setLoading(false)
+          setLoading(false);
         }
-    };
+      };
+      
 
     useEffect(() => {
         getPivotedData()
@@ -172,13 +181,24 @@ const Page = () => {
                 netPercent[key] = `${percent.toFixed(2)}%`
             }
 
-        if (pivotedData['5. Gross Profit'])
-            for (const [key, value] of Object.entries(pivotedData['5. Gross Profit'])) {
-                const percent = (value / pivotedData['1. Sales Accounts'][key]) * 100.0;
-                console.log("SALES", value, pivotedData['1. Sales Accounts'][key], percent.toFixed(2))
-
-                grossPercent[key] = `${percent.toFixed(2)}%`
+            if (pivotedData['5. Gross Profit'] && pivotedData['1. Sales Accounts']) {
+                for (const [key, value] of Object.entries(pivotedData['5. Gross Profit'])) {
+                    // Check if the key exists in 'pivotedData['1. Sales Accounts']'
+                    if (pivotedData['1. Sales Accounts'][key] !== undefined) {
+                        const percent = (value / pivotedData['1. Sales Accounts'][key]) * 100.0;
+                        console.log("SALES", value, pivotedData['1. Sales Accounts'][key], percent.toFixed(2));
+                        grossPercent[key] = `${percent.toFixed(2)}%`;
+                    } else {
+                        console.log(`No corresponding sales data found for '${key}', setting percent to 0`);
+                        grossPercent[key] = `0%`;
+                    }
+                }
+            } else {
+                console.log("Either '5. Gross Profit' or '1. Sales Accounts' is undefined");
+                // Handle this case as per your application's requirements
             }
+            
+            
 
 
         pivotedData['Net Profit (%)'] = netPercent;

@@ -27,21 +27,23 @@ const executeQuery = async (query) => {
 
 // Connect to the database on server start
 // connect();
+
 function getLastFirstDateOfPreviousMonth() {
     const today = moment(); // Get today's date
-    const firstDayOfPreviousMonth = today.subtract(1, 'months').startOf('month');
-    const lastDayOfPreviousMonth = today.endOf('month');
-
-    console.log("Before", firstDayOfPreviousMonth, lastDayOfPreviousMonth)
+    const firstDayOfPreviousMonth = today.clone().subtract(1, 'months').startOf('month');
+    const lastDayOfPreviousMonth = today.clone().subtract(1, 'months').endOf('month');
 
     const startDateString = firstDayOfPreviousMonth.format('YYYY-MM-DD');
     const endDateString = lastDayOfPreviousMonth.format('YYYY-MM-DD');
+
+    console.log("AFTERRR", startDateString, endDateString);
 
     return {
         startDateString,
         endDateString
     };
 }
+
 
 
 export async function GET(request: NextRequest, params: any) {
@@ -85,6 +87,8 @@ export async function GET(request: NextRequest, params: any) {
             GROUP BY [StoreOpenDt], [StoreName], ActMTD, ActYTD, StoreType
             ORDER BY [StoreOpenDt], [StoreName]`
             ;
+
+            console.log("IM QUERY 3",query3)
 
         const query4 = 'SELECT * FROM [CategorWiseSales] ORDER BY ArticleNo';
         const result4 = await executeQuery(query4);

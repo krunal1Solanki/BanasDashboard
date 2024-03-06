@@ -4,11 +4,15 @@ import React, { useEffect, useState } from 'react';
 import { Bar, } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto';
 import { registerables } from 'chart.js';
+import dayjs from 'dayjs'
 import { Layout, Typography, Card, Row, Col, Button, Select, Table, Divider, DatePicker } from 'antd';
 import Loader from '../Components/Loader'
 import * as XLSX from 'xlsx';
+import DynamicData from '../Components/DynamicData';
 import ChartDataLabels from "chartjs-plugin-datalabels";
 
+
+const { RangePicker } = DatePicker;
 
 
 // Register necessary Chart.js components
@@ -23,11 +27,11 @@ const Page = () => {
     const currentDate = new Date();
     const previousMonthIndex = (currentDate.getMonth() - 1 + 12) % 12; // Taking care of wrapping around to previous year
     return months[previousMonthIndex];
-};
+  };
 
   const [salesData, setSalesData] = useState([]);
   const [selectedArticle, setSelectedArticle] = useState('ALL');
-  const [selectedYear, setSelectedYear] = useState('2023');
+  // const [selectedYear, setSelectedYear] = useState('2023');
   const [lobContributions, setLobContributions] = useState({});
   const [tableData, setTableData] = useState([]);
   const [NOB, setTotalNOB] = useState(0);
@@ -42,11 +46,11 @@ const Page = () => {
   const [descs, setDescs] = useState([]); // Change to an array for multi-select
   const [mains, setSelectedMains] = useState([]); // Change to an array for multi-select
 
-  
-  
+
+
   const [selectedStoreType, setSelectedStoreType] = useState('ALL');
   const [selectedStoreType2, setSelectedStoreType2] = useState('ALL');
-  
+
   const [totalSales, setTotalSales] = useState(0);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -57,16 +61,9 @@ const Page = () => {
   const [constFilteredTableData, setConstFilteredTableData] = useState([]);
   const [lobTable, setLobTable] = useState([]);
   const [selectedStore, setSelectedStore] = useState('ALL');
-  
-  
-
-  const handleStoreSelectionChange = (value) => {
-    setSelectedStore(value);
-  };
 
 
   useEffect(() => {
-    console.log("2")
     if (selectedStore == 'ALL') {
       setTotalABV(0);
       setTotalASP(0);
@@ -85,6 +82,39 @@ const Page = () => {
     }
   }, [selectedStore, tableData])
 
+  const handleStoreSelectionChange = (value) => {
+    setSelectedStore(value);
+  };
+
+
+
+  useEffect(() => {
+    if(selectedStores.length == 1) {
+
+      console.log("dataaa",selectedStores, )
+      const info = tableData.filter((item) => selectedStores.includes(item.StoreName))[0]
+      setTotalABV(info.ABV);
+      setTotalASP(info.ASP);
+      setTotalQty(info.QTY);
+      setTotalNOB(info.NOB);
+      setTotalSales(info.ActMTD);
+      setSelectedStore(info.StoreName)
+    }
+  
+    // console.log("2")
+    // if (selectedStore == 'ALL') {
+    // } else {
+    //   const selectedStoreData = tableData.find(item => item.StoreName === selectedStore);
+
+    //   setTotalABV(selectedStoreData.ABV || 0);
+    //   setTotalASP(selectedStoreData.ASP || 0);
+    //   setTotalQty(selectedStoreData.QTY || 0);
+    //   setTotalNOB(selectedStoreData.NOB || 0);
+    //   setTotalSales(selectedStoreData.ActMTD || 0)
+
+    // }
+  }, [selectedStores])
+
 
   function formatIndianNumber(number) {
     const formatter = new Intl.NumberFormat('en-IN');
@@ -95,28 +125,7 @@ const Page = () => {
     setSelectedArticle(value);
   };
 
-  const fetchDataQuery = async () => {
-    setLoading(loading + 1)
-    try {
-      let url = '/api/getTableData';
-      if (!startDate || !endDate) return;
 
-      const body = {
-        startDate, endDate
-      }
-
-      const response = await axios.post(url, body);
-      setTableData(response.data.data3);
-      setArticleTable(response.data.data4)
-      setFilteredArticleData(response.data.data4)
-    } catch (error) {
-      console.error('Error fetching table data:', error);
-    } finally {
-      setTimeout(() => {
-        setLoading(loading + 1)
-      }, 1500)
-    }
-  };
   const options = {
     plugins: {
       datalabels: {
@@ -141,19 +150,39 @@ const Page = () => {
 
     console.log("SOME SOME", filteredArticleData)
     let sum = 0;
-    for(let i = 0; i < filteredArticleData.length; i ++) sum += filteredArticleData[i].SalesAmt;
+    for (let i = 0; i < filteredArticleData.length; i++) sum += filteredArticleData[i].SalesAmt;
     console.log("SOME SOME SUM", sum);
     let map = new Map();
     // console.log("GROUP", groupedData)
+
+    // new logic start
+    if (selectedStoreType === 'ALL') {
+      for (let i = 0; i < groupedData?.length; i++) {
+        const curr = groupedData[i];
+        const key = curr.StoreName + curr.LOB + curr.ArticleDesc + curr.ArticleNo;
+        if (!map.has(key)) {
+          map.set(key, { ...curr, MonthName: 'All Months', StoreType: "All Store Types" }); // Initialize with MonthName as 'All Months'
+        } else {
+          const existing = map.get(key);
+          map.set(key, { ...existing, SalesAmt: existing.SalesAmt + curr.SalesAmt, Qty: existing.Qty + curr.Qty, StoreType: "All Store Types" }); // Sum up sales amounts
+        }
+      }
+    }
+    if (selectedStoreType == 'ALL') {
+      groupedData = Array.from(map.values());
+    }
+
+    //new logic end
+
     if (selectedMonth === 'ALL') {
       for (let i = 0; i < groupedData?.length; i++) {
         const curr = groupedData[i];
         const key = curr.StoreName + curr.LOB + curr.StoreType + curr.ArticleDesc + curr.ArticleNo;
         if (!map.has(key)) {
-          map.set(key, { ...curr, MonthName: 'All Months', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
+          map.set(key, { ...curr, MonthName: 'All Months', }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, SalesAmt: existing.SalesAmt + curr.SalesAmt, Qty: existing.Qty + curr.Qty, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
+          map.set(key, { ...existing, SalesAmt: existing.SalesAmt + curr.SalesAmt, Qty: existing.Qty + curr.Qty, }); // Sum up sales amounts
         }
       }
     }
@@ -166,10 +195,10 @@ const Page = () => {
         const curr = groupedData[i];
         const key = curr.LOB + curr.StoreType + curr.ArticleDesc + curr.ArticleNo;
         if (!map.has(key)) {
-          map.set(key, { ...curr, StoreName: 'All Store', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
+          map.set(key, { ...curr, StoreName: 'All Store', }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, SalesAmt: existing.SalesAmt + curr.SalesAmt, Qty: existing.Qty + curr.Qty, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
+          map.set(key, { ...existing, SalesAmt: existing.SalesAmt + curr.SalesAmt, Qty: existing.Qty + curr.Qty, }); // Sum up sales amounts
         }
       }
     }
@@ -188,20 +217,20 @@ const Page = () => {
 
     // console.log("REM INNININNIN")
     let groupedData = filteredData;
-    
+
     let map = new Map();
     // console.log("THIS IS MY ALL DATA", filteredData)
-   
+
 
     if (selectedStoreType === 'ALL') {
       for (let i = 0; i < groupedData?.length; i++) {
         const curr = groupedData[i];
         const key = curr.StoreName + curr.LOB;
         if (!map.has(key)) {
-          map.set(key, { ...curr, MonthName: 'All Months', Yr: getYearLabel(selectedYear), StoreType : "All Store Types" }); // Initialize with MonthName as 'All Months'
+          map.set(key, { ...curr, MonthName: 'All Months', StoreType: "All Store Types" }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Yr: getYearLabel(selectedYear), StoreType: "All Store Types" }); // Sum up sales amounts
+          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, StoreType: "All Store Types" }); // Sum up sales amounts
         }
       }
     }
@@ -218,10 +247,10 @@ const Page = () => {
         const curr = groupedData[i];
         const key = curr.StoreName + curr.LOB + curr.StoreType;
         if (!map.has(key)) {
-          map.set(key, { ...curr, MonthName: 'All Months', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
+          map.set(key, { ...curr, MonthName: 'All Months', }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
+          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, }); // Sum up sales amounts
         }
       }
     }
@@ -234,21 +263,21 @@ const Page = () => {
         const curr = groupedData[i];
         const key = curr.LOB + curr.StoreType;
         if (!map.has(key)) {
-          map.set(key, { ...curr, StoreName: 'All Store', Yr: getYearLabel(selectedYear) }); // Initialize with MonthName as 'All Months'
+          map.set(key, { ...curr, StoreName: 'All Store', }); // Initialize with MonthName as 'All Months'
         } else {
           const existing = map.get(key);
-          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, Yr: getYearLabel(selectedYear) }); // Sum up sales amounts
+          map.set(key, { ...existing, salesAmt: existing.salesAmt + curr.salesAmt, }); // Sum up sales amounts
         }
       }
     }
     if (selectedStores.length == 0)
       groupedData = Array.from(map.values());
-      groupedData.sort((a, b) => {
-        // Assuming LOB is a string field, use localeCompare for string comparison
-        return a.LOB.localeCompare(b.LOB);
-      });
-      
-      
+    groupedData.sort((a, b) => {
+      // Assuming LOB is a string field, use localeCompare for string comparison
+      return a.LOB.localeCompare(b.LOB);
+    });
+
+
     setLobTable(groupedData)
 
   }, [filteredData])
@@ -267,11 +296,6 @@ const Page = () => {
     }
   };
 
-  useEffect(() => {
-    console.log("6")
-
-    fetchDataQuery();
-  }, [startDate, endDate]);
 
   useEffect(() => {
     console.log("7")
@@ -293,7 +317,7 @@ const Page = () => {
           validYearMonth(item.Yr, item.MonthName) &&
           (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
           (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
-          (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType) && (mains.length == 0 || mains.includes(item.MainCategory)) 
+          (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType) && (mains.length == 0 || mains.includes(item.MainCategory))
       )
     );
 
@@ -305,20 +329,12 @@ const Page = () => {
       )
     );
 
-  }, [salesData, selectedYear, selectedMonth, selectedStores, selectedStoreType]);
+  }, [salesData, selectedMonth, selectedStores, selectedStoreType]);
 
 
 
   const validYearMonth = (itemYear, month) => {
-    month = month.substring(0, 3).toUpperCase();
-    const validMonths = [
-      'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR',
-    ];
-    // console.log("item month", month,)
-    const nextYear = (+selectedYear + 1) + ""
-    return ((itemYear === selectedYear && validMonths.slice(0, 9).includes(month)) ||
-      (itemYear === nextYear && validMonths.slice(9).includes(month)))
+    return true;
   }
 
   useEffect(() => {
@@ -400,7 +416,7 @@ const Page = () => {
       title: 'Sales Amount',
       dataIndex: 'salesAmt',
       key: 'salesAmt',
-      align : "right",
+      align: "right",
       render: (text, record) => {
         return formatIndianNumber(parseFloat(text).toFixed(2));
       }
@@ -414,18 +430,41 @@ const Page = () => {
   }, []);
 
   const fetchData = async () => {
+    setLoading(loading + 1);
+  
     try {
-      let url = '/api/getData';
-
-      const response = await axios.get(url);
-      setSalesData(response.data.data);
-      setTableData(response.data.data3);
-      setArticleTable(response.data.data4);
+      // Replace Axios post request with fetch
+      const response1 = await fetch('/api/getHomeTableData', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ startDate, endDate }),
+      });
+  
+      const data1 = await response1.json();
+      setSalesData(data1.data3);
+      setArticleTable(data1.data4);
+  
+      // Replace Axios post request with fetch
+      const response2 = await fetch('/api/getTableData2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ startDate, endDate }),
+      });
+  
+      const data2 = await response2.json();
+      setTableData(data2.data3);
     } catch (error) {
+      // Handle errors if necessary
       // console.error('Error fetching data:', error);
+    } finally {
+      setLoading(loading + 1);
     }
   };
-
+  
 
   const transformDataForDoughnutChart = () => {
     if (!filteredData || filteredData.length === 0) {
@@ -536,7 +575,7 @@ const Page = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'SalesData');
 
     // Save the workbook as an Excel file
-    const fileName = `SalesData_${selectedYear}_${selectedMonth}_${selectedStoreType}.xlsx`;
+    const fileName = `SalesData_${selectedMonth}_${selectedStoreType}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
@@ -587,6 +626,11 @@ const Page = () => {
     return `${startYear}-${endYear}`;
   };
 
+  useEffect(() => {
+    if (startDate && endDate)
+      fetchData()
+  }, [startDate, endDate])
+
   // Function to render year options
   const renderYearOptions = () => {
     const currentFinancialYear = getCurrentFinancialYear();
@@ -627,7 +671,7 @@ const Page = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'ArticleData');
 
     // Save the workbook as an Excel file
-    const fileName = `ArticleData_${selectedYear}_${selectedMonth}_${selectedStoreType}.xlsx`;
+    const fileName = `ArticleData_${selectedMonth}_${selectedStoreType}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
@@ -705,13 +749,15 @@ const Page = () => {
 
 
         <div style={{ display: 'flex', gap: '10px', marginLeft: '2%', marginTop: '2%' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Select defaultValue="2023" style={{ width: 120 }} onChange={handleYearChange}>
-              {renderYearOptions()}
-            </Select>
+          <div style={{ display: 'flex', alignItems: 'center', marginTop: '1.3%' }}>
+            <RangePicker
+              onChange={handleDateRangeChange}
+              style={{ marginBottom: "20px" }}
+              defaultValue={[dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')]}
+            />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          {/* <div style={{ display: 'flex', alignItems: 'center' }}>
             <Select  style={{ width: 120 }} value={selectedMonth} onChange={handleMonthChange}>
               <Option value="ALL">All Months</Option>
               {[
@@ -723,7 +769,7 @@ const Page = () => {
                 </Option>
               ))}
             </Select>
-          </div>
+          </div> */}
 
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Select defaultValue="ALL" style={{ width: 120, minWidth: '140px' }} onChange={handleStoreTypeChange}>
@@ -761,7 +807,20 @@ const Page = () => {
           </div>
         </div>
 
+        <Row gutter={16} style={{ marginTop: '20px', width: '30%' }}>
+          <Col span={24}>
+            {selectedStores.length == 1 && <DynamicData
+              totalSales={totalSales}
+              NOB={NOB}
+              Qty={Qty}
+              ABV={ABV}
+              selectedStore={selectedStore}
+              ASP={ASP}
+            />}
+          </Col>
+        </Row>
         <Row gutter={16} style={{ marginBottom: '20px', marginTop: '20px' }}>
+
           <Col span={24}>
             {selectedStores.length != 1 && <Card title="Sales Data for Stores" style={{ width: '100%' }}>
               <Bar options={options} data={transformDataForStoresBarChart()} />
@@ -827,7 +886,7 @@ const Page = () => {
 
               <Table pagination={mains.length != 1} dataSource={(selectedArticle == 'ALL' ? articles : articles.filter((item) => item.ArticleNo == selectedArticle)).filter((item) => lobs.length == 0 || lobs.includes(item.LOB)).filter((item) => mains.length == 0 || mains.includes(item.MainCategory))} style={{ marginTop: '20px' }} columns={articleColumns} bordered scroll={{ x: true }} />
               <div style={{ marginTop: '10px', textAlign: 'right', fontWeight: 'bold' }}>
-               
+
                 <Button style={buttonStyle}> {`Total SalesAmt: ₹${formatIndianNumber(totalSalesAmt)}`}</Button>
               </div>
             </Card>
@@ -844,9 +903,9 @@ const Page = () => {
             <Card title=" LOB Summary Table">
               <Table dataSource={lobTable} scroll={{ x: true }} bordered columns={columns} pagination={{ pageSize: 30 }} />
               <div style={{ marginTop: '10px', textAlign: 'right', fontWeight: 'bold' }}>
-               
-               <Button style={buttonStyle}> {`Total SalesAmt: ₹${formatIndianNumber(totalSalesAmt2)}`}</Button>
-             </div>
+
+                <Button style={buttonStyle}> {`Total SalesAmt: ₹${formatIndianNumber(totalSalesAmt2)}`}</Button>
+              </div>
             </Card>
             <Button onClick={handleExportToExcel} type="primary" style={{ marginTop: '15px', backgroundColor: '#83ed7e', color: "black" }}>
               Export to Excel

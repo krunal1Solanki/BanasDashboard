@@ -57,15 +57,22 @@ const Year = () => {
     try {
       let url = '/api/getData';
       setLoading(true); // Set loading to true before fetching data
-      const response = await axios.get(url);
-      setSalesData(response.data.data);
-      setFilteredSalesData(response.data.data);
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setSalesData(data.data);
+      setFilteredSalesData(data.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false); // Set loading to false after fetching data
     }
-  };
+};
+
 
   const exportToExcel = () => {
     // Filtered data for export
@@ -100,6 +107,7 @@ const Year = () => {
 
   const handleStoreTypeChange = (value) => {
     setSelectedStoreType(value);
+    setSelectedStoreNames([])
   };
 
   const handleStoreNamesChange = (values) => {

@@ -1,6 +1,7 @@
 import { connect } from '../../dbConfig/database';
 import { NextRequest, NextResponse } from 'next/server';
 import sql from 'mssql';
+import moment from 'moment';
 // Database connection configuration
 const dbConfig = {
     server: process.env.NEXT_PUBLIC_DB_SERVER,
@@ -24,6 +25,26 @@ const executeQuery = async (query) => {
     }
 };
 
+
+
+function getLastFirstDateOfPreviousMonth() {
+    const today = moment(); // Get today's date
+    const firstDayOfPreviousMonth = today.clone().subtract(1, 'months').startOf('month');
+    const lastDayOfPreviousMonth = today.clone().subtract(1, 'months').endOf('month');
+    
+    const startDateString = firstDayOfPreviousMonth.format('YYYY-MM-DD');
+    const endDateString = lastDayOfPreviousMonth.format('YYYY-MM-DD');
+    
+    console.log("AFTERRR", startDateString, endDateString);
+    
+    return {
+        startDateString,
+        endDateString
+    };
+    }
+
+    
+
 // Connect to the database on server start
 // connect();
 
@@ -31,13 +52,14 @@ export async function POST(request: NextRequest, params: any) {
     try {
         // Example query to fetch data from MonthWiseSales table
         const body = await request.json();
-        const { startDate, endDate } = body;
-
-        if (!startDate || !endDate) {
-            return NextResponse.json({
-                message: "Please enter complete range of date"
-            })
+        let { startDate, endDate } = body;
+        if(!startDate && !endDate) {
+            const { startDateString, endDateString } = getLastFirstDateOfPreviousMonth();
+            startDate = startDateString;
+            endDate = endDateString;
         }
+
+
         console.log(body)
 
         const query3 = `SELECT [StoreOpenDt], ds.[StoreName], SUM(FTD) AS FTD, SUM([NOB]) AS [NOB], SUM(QTY) AS QTY,

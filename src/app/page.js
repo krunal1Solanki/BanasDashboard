@@ -24,8 +24,9 @@ const Page = () => {
   const [salesData, setSalesData] = useState([]);
   const [selectedYear, setSelectedYear] = useState('2023');
   const [tableData, setTableData] = useState([]);
+  const [totalData, setTotalData] = useState(null);
   const [NOB, setTotalNOB] = useState(0);
-  const [loading, setLoading] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [Qty, setTotalQty] = useState(0);
   const [ABV, setTotalABV] = useState(0);
   const [ASP, setTotalASP] = useState(0);
@@ -63,33 +64,77 @@ const Page = () => {
   }, [selectedStore, tableData])
 
 
+  useEffect(() => {
+    const dataForTotal = selectedStoreType2 == 'ALL' ? tableData : tableData.filter((item) => item.StoreType == selectedStoreType2);
+
+    const sumObject = {
+      FTD: 0,
+      NOB: 0,
+      QTY: 0,
+      ABV: 0,
+      UPT: 0,
+      ASP: 0,
+      ActMTD: 0,
+      ActYTD: 0,
+      AvgSalesPerDay : 0,
+    };
+
+    dataForTotal.forEach((item) => {
+      sumObject.FTD += item.FTD || 0;
+      sumObject.NOB += parseFloat(item.NOB) || 0;
+      sumObject.QTY += parseFloat(item.QTY) || 0;
+      sumObject.AvgSalesPerDay += parseFloat(item.AvgSalesPerDay) || 0;
+      sumObject.ABV += parseFloat(item.ABV) || 0;
+      sumObject.UPT += parseFloat(item.UPT) || 0;
+      sumObject.ASP += parseFloat(item.ASP) || 0;
+      sumObject.ActMTD += parseFloat(item.ActMTD) || 0;
+      sumObject.ActYTD += parseFloat(item.ActYTD) || 0;
+    });
+    sumObject.ABV = sumObject.FTD/sumObject.NOB;
+    sumObject.UPT = sumObject.QTY/sumObject.NOB;
+    sumObject.ASP = sumObject.FTD/sumObject.QTY;
+
+
+    setTotalData([sumObject]);
+
+  }, [selectedStoreType2, tableData])
+
   function formatIndianNumber(number) {
     const formatter = new Intl.NumberFormat('en-IN');
     return formatter.format(number);
   }
 
   const fetchDataQuery = async () => {
-    setLoading(loading + 1)
     try {
       let url = '/api/getTableData';
       if (!startDate || !endDate) return;
 
       const body = {
         startDate, endDate
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
-      const response = await axios.post(url, body);
-      setTableData(response.data.data3);
-      setArticleTable(response.data.data4)
-      setFilteredArticleData(response.data.data4)
+      const data = await response.json();
+      setTableData(data.data3);
+      setArticleTable(data.data4);
+      setFilteredArticleData(data.data4);
     } catch (error) {
       console.error('Error fetching table data:', error);
     } finally {
-      setTimeout(() => {
-        setLoading(loading + 1)
-      }, 1500)
+      // Any cleanup or additional logic can go here
     }
-  };
+};
 
 
   const handleDateRangeChange = (dates) => {
@@ -202,18 +247,30 @@ const Page = () => {
     fetchData();
   }, []);
 
+
   const fetchData = async () => {
     try {
       let url = '/api/getData';
-
-      const response = await axios.get(url);
-      setSalesData(response.data.data);
-      setTableData(response.data.data3);
-      setArticleTable(response.data.data4);
+      setLoading(true);
+  
+      const response = await fetch(url);
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      
+      setSalesData(data.data);
+      setTableData(data.data3);
+      setArticleTable(data.data4);
     } catch (error) {
       // console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
     }
   };
+  
 
 
   const transformDataForDoughnutChart = () => {
@@ -293,7 +350,99 @@ const Page = () => {
       render: (text, item) => parseFloat(text).toFixed(2)
     },
   ];
+  const keyHighlightsColumns2 = [
+    {
+      align: 'left',
+      title: 'Values',
+      render: (text) => "Total"
+    },
+    // {
+    //   align: 'left',
+    //   title : 'StoreName',
+    //   render: (text) => "-"
+    // },
+    // {
+    //   align: 'left',
+    //   title : 'StoreType',
+    //   render: (text) => "-"
+    // },
+    {
+      align: 'right',
+      title: 'FTD',
+      dataIndex: 'FTD',
+      key: 'FTD',
+      render: (text) => formatIndianNumber(text)
+    },
+    {
+      title: 'NOB',
+      align: 'right',
+      dataIndex: 'NOB',
+      key: 'NOB',
+      render: (text) => formatIndianNumber(text)
 
+    },
+    {
+      title: 'QTY',
+      align: 'right',
+      dataIndex: 'QTY',
+      key: 'QTY',
+      render: (text) => formatIndianNumber(text)
+
+    },
+    {
+      title: 'ABV',
+      align: 'right',
+      dataIndex: 'ABV',
+      key: 'ABV',
+      render: (text) => parseFloat(text).toFixed(2),
+    },
+    {
+      title: 'UPT',
+      align: 'right',
+      dataIndex: 'UPT',
+      key: 'UPT',
+      render: (text) => parseFloat(text).toFixed(2),
+    },
+
+    {
+      title: 'ASP',
+      align: 'right',
+      dataIndex: 'ASP',
+      key: 'ASP',
+      render: (text) => parseFloat(text).toFixed(2),
+    },
+    {
+      title: 'ActMTD',
+      dataIndex: 'ActMTD',
+      align: 'right',
+      key: 'ActMTD',
+      render: (text) => formatIndianNumber(text)
+    },
+    {
+      title: 'AvgSalesPerDay',
+      align: 'right',
+      dataIndex: 'AvgSalesPerDay',
+      key: 'AvgSalesPerDay',
+      render: (text) => formatIndianNumber(text)
+    },
+    {
+      title: 'ActYTD',
+      align: 'right',
+      dataIndex: 'ActYTD',
+      key: 'ActYTD',
+      render: (text) => formatIndianNumber(text)
+    },
+    // {
+    //   title: <span style={{ whiteSpace: 'nowrap' }}>{'MTD Sls Mix	'}</span>,
+    //   align: 'right',
+    //   render: (text) => '-'
+    // },
+    // {
+    //   title: <span style={{ whiteSpace: 'nowrap' }}>{'YTD Sls Mix'}</span>,
+    //   align: 'right',
+    //   render: (text) => '-'
+    // },
+  ];
 
   const keyHighlightsColumns = [
     {
@@ -390,7 +539,7 @@ const Page = () => {
       key: 'SaleContrPercentage',
       align: 'right',
       render: (text, record) => {
-        const sumAvgSalesPerDay = tableData.reduce((acc, item) => {
+        const sumAvgSalesPerDay = (selectedStoreType2 == 'ALL' ? tableData : tableData.filter((item) => item.StoreType == selectedStoreType2)).reduce((acc, item) => {
           return acc + (item.ActMTD || 0)
         }, 0)
 
@@ -403,22 +552,26 @@ const Page = () => {
       align: 'right',
       key: 'ActYTDContrPercentage',
       render: (text, record) => {
-        const sumActYTD = tableData.reduce((acc, item) => acc + (item.ActYTD || 0), 0);
+        const sumActYTD = (selectedStoreType2 == 'ALL' ? tableData : tableData.filter((item) => item.StoreType == selectedStoreType2)).reduce((acc, item) => acc + (item.ActYTD || 0), 0);
         const contributionPercentage = ((record.ActYTD || 0) / sumActYTD) * 100;
         return contributionPercentage.toFixed(2) + "%";
       },
     },
   ];
+
   const handleExportToExcelTableData = () => {
-    if (!tableData || tableData.length === 0) {
+    if (!tableData || tableData.length === 0 || !totalData) {
       // console.warn('No data to export.');
       return;
     }
-    const exData = selectedStoreType2 == 'ALL' ? tableData : tableData.filter((item) => item.StoreType == selectedStoreType2);
-
+  
+    const exData = selectedStoreType2 === 'ALL'
+      ? tableData
+      : tableData.filter((item) => item.StoreType === selectedStoreType2);
+  
     const sumActMTD = exData.reduce((acc, item) => acc + (item.ActMTD || 0), 0);
     const sumActYTD = exData.reduce((acc, item) => acc + (item.ActYTD || 0), 0);
-
+  
     // Transform data for Excel format
     const excelData = exData.map((item) => ({
       'Store Name': item.StoreName,
@@ -436,15 +589,34 @@ const Page = () => {
       'MTD Sls Mix': ((item.ActMTD || 0) / sumActMTD * 100).toFixed(2) + "%",
       'YTD Sls Mix': ((item.ActYTD || 0) / sumActYTD * 100).toFixed(2) + "%",
     }));
+  
+    // Transform data for the second table (totalData)
+    const totalDataExcel = totalData.map((item) => ({
+      'ABV': item.ABV || '',
+      'ASP': item.ASP || '',
+      'ActMTD': item.ActMTD || '',
+      'ActYTD': item.ActYTD || '',
+      'FTD': item.FTD || '',
+      'NOB': item.NOB || '',
+      'QTY': item.QTY || '',
+      'AvgSalesPerDay' : item.AvgSalesPerDay || '',
+      'UPT': item.UPT || '',
+    }));
+  
+    // Combine data from both tables
+    const combinedData = [...excelData, ...totalDataExcel];
+  
     // Create a worksheet
-    const ws = XLSX.utils.json_to_sheet(excelData);
-
+    const ws = XLSX.utils.json_to_sheet(combinedData);
+  
     // Create a workbook
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'TableData');
-
+  
+    // Add worksheet to the workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'CombinedData');
+  
     // Save the workbook as an Excel file
-    const fileName = `TableData.xlsx`;
+    const fileName = `CombinedData.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
@@ -457,12 +629,12 @@ const Page = () => {
   };
  
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', overflow :"hidden" }}>
       {/* {console.log("PIKACHUUU", process.env.NEXT_PUBLIC_DB_SERVER)} */}
 
       <Divider />
 
-      {loading == 1 ? <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader size='large' /></div> : <Content style={{ padding: '24px', minHeight: 'calc(100vh - 64px)', }}>
+      {loading ? <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflowX: "hidden" }}><Loader /></div> : <Content style={{ padding: '24px', minHeight: 'calc(100vh - 64px)', overflow: "hidden" }}>
         <Row gutter={16} style={{ marginTop: '20px' }}>
           <Col span={24}>
             <Card title="Daily Sales Report" >
@@ -510,7 +682,17 @@ const Page = () => {
                 </Col>
               </Row>
               {selectedStore != 'ALL' && <Divider />}
-              <Table bordered dataSource={selectedStoreType2 == 'ALL' ? tableData : tableData.filter((item) => item.StoreType == selectedStoreType2)} columns={keyHighlightsColumns} scroll={{ x: true }} pagination={false} />
+              <Table bordered dataSource={selectedStoreType2 == 'ALL' ? tableData : tableData.filter((item) => item.StoreType == selectedStoreType2)} columns={keyHighlightsColumns} scroll={{ x: true }} pagination={false} 
+               footer={() => (
+                <>
+                  <Table
+                    dataSource={totalData}
+                    columns={keyHighlightsColumns2}
+                    scroll={{ x: true }}
+                    pagination={false}
+                  />
+                </>
+              )}/>
               <Button onClick={handleExportToExcelTableData} type='primary' style={{ marginTop: '15px', backgroundColor: '#83ed7e', color: "black" }}>
                 Export to Excel
               </Button>

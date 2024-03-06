@@ -1,6 +1,8 @@
 import { connect } from '../../dbConfig/database';
 import { NextRequest, NextResponse } from 'next/server';
 import sql from 'mssql';
+import jwt from 'jsonwebtoken'
+import moment from 'moment';
 // Database connection configuration
 const dbConfig = {
     server: process.env.NEXT_PUBLIC_DB_SERVER,
@@ -24,47 +26,42 @@ const executeQuery = async (query) => {
     }
 };
 
+
+
 // Connect to the database on server start
 // connect();
 
-export async function POST(request: NextRequest, params: any) {
+export async function POST(request: NextRequest) {
     try {
         // Example query to fetch data from MonthWiseSales table
+        // 1030 123const body = await request.json();
         const body = await request.json();
-        const { startDate, endDate } = body;
+        const { UserName, Password } = body;
 
-        if (!startDate || !endDate) {
+        // Using parameterized query to prevent SQL injection
+        const query = `SELECT * FROM Users WHERE UserName = '${UserName}' and Password = '${Password}'`;
+
+        const resp = await executeQuery(query);
+        if (resp.length > 0) {
+            const token = jwt.sign({ user: resp[0] }, 'PIKACHU', { expiresIn: '1h' });
+            console.log("TOKEN",token)
+
+            const response = NextResponse.json({
+                success: true,
+                user: resp[0]
+            })
+            response.cookies.set("banasToken", token, { httpOnly: true });
+
+            return response;
+        } else {
             return NextResponse.json({
-                message: "Please enter complete range of date"
+                success: false
             })
         }
-        console.log(body)
-
-        const query3 = `SELECT [StoreOpenDt], ds.[StoreName], SUM(FTD) AS FTD, SUM([NOB]) AS [NOB], SUM(QTY) AS QTY,
-        ABV = SUM(FTD) / SUM([NOB]),
-        UPT = SUM(QTY) / SUM([NOB]),
-        ASP = SUM(FTD) / SUM(QTY),
-        dsm.ActMTD,
-        StoreType,
-        AvgSalesPerDay = dsm.ActMTD / (DATEDIFF(day, '${startDate}', '${endDate}') + 1),
-        dsy.ActYTD
-FROM DailySalesRpt ds
-left join (Select [StoreName],SUM(FTD) as ActMTD from DailySalesRpt where Dt >= '${startDate}' AND Dt <= '${endDate}' group by [StoreName]) dsm on dsm.[StoreName] = ds.[StoreName]
-left join (Select [StoreName],SUM(FTD) as ActYTD from DailySalesRpt where Dt <= '${endDate}' group by [StoreName]) dsy on dsy.[StoreName] = ds.[StoreName]
-WHERE Dt >= '${startDate}' AND Dt <= '${endDate}'
-GROUP BY [StoreOpenDt], ds.[StoreName], StoreType, dsm.ActMTD, dsy.ActYTD
-ORDER BY [StoreOpenDt], ds.[StoreName]`;
-
-
-        const result3 = await executeQuery(query3);
-
-        return NextResponse.json({
-
-            data3: result3
-        });
     } catch (err: any) {
         return NextResponse.json({
             error: err.message,
+            success: false
         });
     }
 }
