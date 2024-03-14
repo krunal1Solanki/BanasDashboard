@@ -96,7 +96,7 @@ const Page = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-          let url = '/api/getData';
+          let url = '/api/pnl';
           const response = await fetch(url);
       
           if (!response.ok) {
@@ -120,7 +120,6 @@ const Page = () => {
         }
       };
       
-
     useEffect(() => {
         getPivotedData()
     }, [selectedYear, selectedMonth, selectedStoreType])
@@ -137,7 +136,7 @@ const Page = () => {
 
         filteredData = selectedYear == 'ALL' ? filteredData : filteredData.filter((item) => item.Yr == selectedYear);
         console.log("FILTERED 3", filteredData.length)
-        filteredData = selectedMonth == 'ALL' ? filteredData : filteredData.filter((item) => item.MonthName == selectedMonth);
+        filteredData = filteredData.filter((item) => item.MonthName == selectedMonth);
 
         console.log("FILTERED 4", filteredData.length)
 
@@ -145,6 +144,113 @@ const Page = () => {
 
         filteredData.forEach(item => {
             const storeName = item.StoreName;
+            const particular = item.Particular;
+            const balance = typeof item.Balance === 'number' ? item.Balance : 0;
+            console.log("FILTERED ENDD", selectedStoreType)
+            if (!pivotedData[particular]) {
+                pivotedData[particular] = {};
+            }
+            pivotedData[particular][storeName] = balance;
+
+        });
+        console.log("FILTERED 5", filteredData, pivotedData)
+
+        // Calculate totals for each column
+        const columnTotals = {};
+        Object.entries(pivotedData).forEach(([parentKey, balances]) => {
+            if (parentKey == '5. Gross Profit') return;
+            Object.entries(balances).forEach(([storeName, balance]) => {
+                console.log("NEXT Child Key:", storeName, "Balance:", balance);
+                columnTotals[storeName] = (columnTotals[storeName] || 0) + balance;
+            });
+        });
+
+        console.log("FILTERED 6.1", pivotedData)
+        // Add a row for total
+        pivotedData['Net Profit'] = columnTotals;
+        console.log("FILTERED 6.2", pivotedData)
+
+
+
+        let netPercent = {}
+        let grossPercent = {}
+        if (pivotedData['1. Sales Accounts'])
+            for (const [key, value] of Object.entries(pivotedData['1. Sales Accounts'])) {
+                const percent = (pivotedData['Net Profit'][key] / value) * 100.0;
+                netPercent[key] = `${percent.toFixed(2)}%`
+            }
+
+            if (pivotedData['5. Gross Profit'] && pivotedData['1. Sales Accounts']) {
+                for (const [key, value] of Object.entries(pivotedData['5. Gross Profit'])) {
+                    // Check if the key exists in 'pivotedData['1. Sales Accounts']'
+                    if (pivotedData['1. Sales Accounts'][key] !== undefined) {
+                        const percent = (value / pivotedData['1. Sales Accounts'][key]) * 100.0;
+                        console.log("SALES", value, pivotedData['1. Sales Accounts'][key], percent.toFixed(2));
+                        grossPercent[key] = `${percent.toFixed(2)}%`;
+                    } else {
+                        console.log(`No corresponding sales data found for '${key}', setting percent to 0`);
+                        grossPercent[key] = `0%`;
+                    }
+                }
+            } else {
+                console.log("Either '5. Gross Profit' or '1. Sales Accounts' is undefined");
+                // Handle this case as per your application's requirements
+            }
+            
+            
+
+
+        pivotedData['Net Profit (%)'] = netPercent;
+        pivotedData['5.2 Gross Profit (%)'] = grossPercent;
+
+        if ('5.2 Gross Profit (%)' in pivotedData) {
+            const grossProfitIndex = Object.keys(pivotedData).indexOf('5. Gross Profit');
+            if (grossProfitIndex !== -1) {
+                let keys = Object.keys(pivotedData);
+                keys.splice(grossProfitIndex + 1, 0, '5.2 Gross Profit (%)');
+                let pivotedDataCopy = {};
+
+                keys.forEach(key => {
+                    pivotedDataCopy[key] = pivotedData[key];
+                });
+
+                pivotedData = pivotedDataCopy;
+            }
+        }
+        console.log("FILTERED 6", pivotedData)
+        console.log("FILTERED RETURN", Object.entries(pivotedData).map(([particular, balances]) => ({
+            Particular: particular,
+            ...balances,
+        })))
+
+
+        const data = Object.entries(pivotedData).map(([particular, balances]) => ({
+            Particular: particular,
+            ...balances,
+        }));
+        console.log("FINALDATA", data)
+        return data;
+    };
+
+    const getPivotedData2 = () => {
+        let filteredData = selectedStores.length > 0
+            ? salesData.filter(item => selectedStores.includes(item.StoreName))
+            : salesData;
+
+        console.log("FILTERED BEFOREE", filteredData.length, selectedStoreType)
+
+        filteredData = selectedStoreType == 'ALL' ? filteredData : filteredData.filter((item) => item.StoreType == selectedStoreType);
+        console.log("FILTERED 2", filteredData.length)
+
+        filteredData = selectedYear == 'ALL' ? filteredData : filteredData.filter((item) => item.Yr == selectedYear);
+        console.log("FILTERED 3", filteredData.length)
+
+        console.log("FILTERED 4", filteredData.length)
+
+        let pivotedData = {};
+
+        filteredData.forEach(item => {
+            const storeName = item.MonthName;
             const particular = item.Particular;
             const balance = typeof item.Balance === 'number' ? item.Balance : 0;
             console.log("FILTERED ENDD", selectedStoreType)
@@ -275,7 +381,42 @@ const Page = () => {
                     const color = isTotal ? (parseInt(text) >= 0 ? 'green' : 'red') : '';
                     const value = isNaN(parseInt(text)) ? 0 : !(text + "").includes('%') ? parseInt(text) : text;
                     const style = isTotal ? { fontWeight: 'bold' } : {};
-                    return <span style={{ color, ...style }}>{value}</span>;
+                    return <span style={{ color, ...style }}>{(value+"").includes("%") ? value : value > 0 ? value+'Cr' : value < 0 ?Math.abs(value) + 'Dr' : value}</span>;
+                },
+            })),
+        ];
+
+        return columns;
+    };
+
+    const getPivotedColumns2 = () => {
+        const storeNamesToShow =salesData.map(item => item.MonthName);
+        const uniqueStoreNames = Array.from(new Set(storeNamesToShow));
+
+        const columns = [
+            {
+                title: 'Particular',
+                dataIndex: 'Particular',
+                align: 'left',
+                key: 'Particular',
+                render: (text, record) => {
+                    console.log("MAP", record);
+                    const isTotal = record.Particular === 'Net Profit' || record.Particular == '5. Gross Profit';
+                    const style = isTotal ? { fontWeight: 'bold' } : {};
+                    return <span style={{ whiteSpace: 'nowrap', ...style }}>{text}</span>;
+                },
+            },
+            ...uniqueStoreNames.map(storeName => ({
+                title: storeName,
+                dataIndex: storeName,
+                align: 'right',
+                key: storeName,
+                render: (text, record) => {
+                    const isTotal = record.Particular === 'Net Profit' || record.Particular == '5. Gross Profit';
+                    const color = isTotal ? (parseInt(text) >= 0 ? 'green' : 'red') : '';
+                    const value = isNaN(parseInt(text)) ? 0 : !(text + "").includes('%') ? parseInt(text) : text;
+                    const style = isTotal ? { fontWeight: 'bold' } : {};
+                    return <span style={{ color, ...style }}>{(value+"").includes("%") ? value : value > 0 ? value+'Cr' : value < 0 ?Math.abs(value) + 'Dr' : value}</span>;
                 },
             })),
         ];
@@ -343,7 +484,6 @@ const Page = () => {
                             onChange={handleMonthChange}
                             value={selectedMonth || undefined}
                         >
-                            <Option value={'ALL'}>All Month</Option>
                             {renderMonthOptions()}
                         </Select>
 
@@ -394,6 +534,8 @@ const Page = () => {
                 {tableView ? (
                     <>
                         <Table dataSource={getPivotedData()} rowClassName={highlightRow} columns={getPivotedColumns()} bordered scroll={{ x: true }} />
+                        <Table dataSource={getPivotedData2()} rowClassName={highlightRow} columns={getPivotedColumns2()} bordered scroll={{ x: true }} />
+
                         <Button onClick={handleExportToExcel} style={{ marginTop: '15px', backgroundColor: '#83ed7e', color: "black", marginTop: '15px' }} type="primary">
                             Export to Excel
                         </Button>

@@ -46,10 +46,10 @@ export async function POST(request: NextRequest, params: any) {
         ASP = SUM(FTD) / SUM(QTY),
         dsm.ActMTD,
         StoreType,
-        AvgSalesPerDay = dsm.ActMTD / (DATEDIFF(day, '${startDate}', '${endDate}') + 1),
+        AvgSalesPerDay = dsm.ActMTD / DATEPART(dd,'${endDate}'),
         dsy.ActYTD
 FROM DailySalesRpt ds
-left join (Select [StoreName],SUM(FTD) as ActMTD from DailySalesRpt where Dt >= '${startDate}' AND Dt <= '${endDate}' group by [StoreName]) dsm on dsm.[StoreName] = ds.[StoreName]
+left join (Select [StoreName],SUM(FTD) as ActMTD from DailySalesRpt where MONTH(Dt) = MONTH('${startDate}') and Year(Dt) = Year('${startDate}') AND Dt <= '${endDate}' group by [StoreName]) dsm on dsm.[StoreName] = ds.[StoreName]
 left join (Select [StoreName],SUM(FTD) as ActYTD from DailySalesRpt where Dt <= '${endDate}' group by [StoreName]) dsy on dsy.[StoreName] = ds.[StoreName]
 WHERE Dt >= '${startDate}' AND Dt <= '${endDate}'
 GROUP BY [StoreOpenDt], ds.[StoreName], StoreType, dsm.ActMTD, dsy.ActYTD
@@ -68,3 +68,4 @@ ORDER BY [StoreOpenDt], ds.[StoreName]`;
         });
     }
 }
+export const revalidate = 0;

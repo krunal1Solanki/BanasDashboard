@@ -74,6 +74,8 @@ export async function POST(request: NextRequest, params: any) {
         // const query4 = 'SELECT * FROM [CategorWiseSales] ORDER BY ArticleNo'
         const query4 = `SELECT * FROM [CategorWiseSales] WHERE Dt >= '${startDate}' AND Dt <= '${endDate}' ORDER BY ArticleNo`
 
+        const query = 'Select * FROM [ArticleWiseSales]'
+
 
         const result3 = await executeQuery(query3);
         const data4 = await executeQuery(query4);
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest, params: any) {
         return NextResponse.json({
 
             data3: result3,
-            data4 
+            data4 ,
         });
     } catch (err: any) {
         return NextResponse.json({
@@ -89,3 +91,4 @@ export async function POST(request: NextRequest, params: any) {
         });
     }
 }
+export const revalidate = 0;

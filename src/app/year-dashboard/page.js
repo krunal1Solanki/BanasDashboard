@@ -55,7 +55,7 @@ const Year = () => {
 
   const fetchData = async () => {
     try {
-      let url = '/api/getData';
+      let url = '/api/yearApi';
       setLoading(true); // Set loading to true before fetching data
       const response = await fetch(url);
 

@@ -1,6 +1,7 @@
 import { connect } from '../../dbConfig/database';
 import { NextRequest, NextResponse } from 'next/server';
 import sql from 'mssql';
+import jwt from 'jsonwebtoken'
 import moment from 'moment';
 // Database connection configuration
 const dbConfig = {
@@ -27,67 +28,65 @@ const executeQuery = async (query) => {
 
 
 
+// Connect to the database on server start
+// connect();
+
 function getLastFirstDateOfPreviousMonth() {
     const today = moment(); // Get today's date
     const firstDayOfPreviousMonth = today.clone().subtract(1, 'months').startOf('month');
     const lastDayOfPreviousMonth = today.clone().subtract(1, 'months').endOf('month');
-    
+
     const startDateString = firstDayOfPreviousMonth.format('YYYY-MM-DD');
     const endDateString = lastDayOfPreviousMonth.format('YYYY-MM-DD');
-    
+
     console.log("AFTERRR", startDateString, endDateString);
-    
+
     return {
         startDateString,
         endDateString
     };
-    }
+}
 
-    
-
-// Connect to the database on server start
-// connect();
-
-export async function POST(request: NextRequest, params: any) {
+export async function POST(request: NextRequest) {
     try {
-        // Example query to fetch data from MonthWiseSales table
         const body = await request.json();
-        let { startDate, endDate } = body;
-        if(!startDate && !endDate) {
+        let { startDate, endDate, selectedStoreType, selectedStores, lobValue } = body;
+
+        if (!startDate && !endDate) {
             const { startDateString, endDateString } = getLastFirstDateOfPreviousMonth();
             startDate = startDateString;
             endDate = endDateString;
         }
 
-        
-        console.log(body)
+        console.log(startDate, endDate, selectedStoreType, selectedStores, lobValue);
 
-        const query3 = `SELECT [StoreOpenDt], ds.[StoreName], SUM(FTD) AS FTD, SUM([NOB]) AS [NOB], SUM(QTY) AS QTY,
-        ABV = SUM(FTD) / SUM([NOB]),
-        UPT = SUM(QTY) / SUM([NOB]),
-        ASP = SUM(FTD) / SUM(QTY),
-        dsm.ActMTD,
-        StoreType,
-        AvgSalesPerDay = dsm.ActMTD / DATEPART(dd,'${endDate}'),
-        dsy.ActYTD
-FROM DailySalesRpt ds
-left join (Select [StoreName],SUM(FTD) as ActMTD from DailySalesRpt where MONTH(Dt) = MONTH('${startDate}') and Year(Dt) = Year('${startDate}') AND Dt <= '${endDate}' group by [StoreName]) dsm on dsm.[StoreName] = ds.[StoreName]
-left join (Select [StoreName],SUM(FTD) as ActYTD from DailySalesRpt where Dt <= '${endDate}' group by [StoreName]) dsy on dsy.[StoreName] = ds.[StoreName]
-WHERE Dt >= '${startDate}' AND Dt <= '${endDate}'
-GROUP BY [StoreOpenDt], ds.[StoreName], StoreType, dsm.ActMTD, dsy.ActYTD
-ORDER BY [StoreOpenDt], ds.[StoreName]`;
+        let query = `
+            SELECT * 
+            FROM [ArticleWiseSales] 
+            WHERE Dt >= '${startDate}' AND Dt <= '${endDate}'
+            AND LOB = '${lobValue}'
+        `;
 
+        if (selectedStoreType !== 'ALL') {
+            query += ` AND StoreType='${selectedStoreType}'`;
+        }
 
-        const result3 = await executeQuery(query3);
+        if (selectedStores.length > 0) {
+            const storesCondition = selectedStores.map(store => `StoreName='${store}'`).join(' OR ');
+            query += ` AND (${storesCondition})`;
+        }
+
+        console.log(query)
+        const result = await executeQuery(query);
 
         return NextResponse.json({
-
-            data3: result3
+            message: result
         });
+
     } catch (err: any) {
         return NextResponse.json({
             error: err.message,
+            success: false
         });
     }
 }
-export const revalidate = 0;

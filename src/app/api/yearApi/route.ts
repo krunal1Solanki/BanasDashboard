@@ -49,57 +49,12 @@ function getLastFirstDateOfPreviousMonth() {
 export async function GET(request: NextRequest, params: any) {
     try {
 
-        const { startDateString, endDateString } = getLastFirstDateOfPreviousMonth();
-
-
-
-        console.log("PIKACHIUU", startDateString, endDateString)
-
-        // Example query to fetch data from MonthWiseSales table
-        console.log(params);
         const query = 'SELECT * FROM MonthWiseSales order by StoreOpenDt';
         const result = await executeQuery(query);
 
-       
-
-
-        const query3 =
-            `Declare @TodayDt date;
-            Declare @StartDt date;
-            Declare @ToDt date;
-
-            Set @TodayDt = getdate();
-
-            Select @StartDt = Convert(date,'01-' + DATENAME(month,DATEADD(month,-1,@TodayDt)) + '-' + DATENAME(year,DATEADD(month,-1,@TodayDt)))
-            Select @ToDt = DATEADD(day,-1,Convert(date,'01-' + DATENAME(month,@TodayDt) + '-' + DATENAME(year,@TodayDt)))
-
-            SELECT [StoreOpenDt], ds.[StoreName], SUM(FTD) AS FTD, SUM([NOB]) AS [NOB], SUM(QTY) AS QTY,
-            ABV = SUM(FTD) / SUM([NOB]),
-            UPT = SUM(QTY) / SUM([NOB]),
-            ASP = SUM(FTD) / SUM(QTY),
-            dsm.ActMTD,
-            StoreType,
-            AvgSalesPerDay = dsm.ActMTD / (DATEDIFF(day, @StartDt, @ToDt) + 1),
-            dsy.ActYTD
-            FROM DailySalesRpt ds
-            left join (Select [StoreName],SUM(FTD) as ActMTD from DailySalesRpt where Dt >= @StartDt AND Dt <= @ToDt group by [StoreName]) dsm on dsm.[StoreName] = ds.[StoreName]
-			left join (Select [StoreName],SUM(FTD) as ActYTD from DailySalesRpt where Dt <= @ToDt group by [StoreName]) dsy on dsy.[StoreName] = ds.[StoreName]
-            WHERE Dt >= @StartDt AND Dt <= @ToDt
-            GROUP BY [StoreOpenDt], ds.[StoreName], dsm.ActMTD, dsy.ActYTD, StoreType
-            ORDER BY [StoreOpenDt], ds.[StoreName]`
-            ;
-
-        const query4 = 'SELECT * FROM [CategorWiseSales] ORDER BY ArticleNo';
-        const result4 = await executeQuery(query4);
-        const result3 = await executeQuery(query3);
-
-        console.log("ThiSSS", result3)
-        console.log(result3.length)
 
         return NextResponse.json({
             data: result,
-            data3: result3,
-            data4: result4
         });
     } catch (err: any) {
         return NextResponse.json({

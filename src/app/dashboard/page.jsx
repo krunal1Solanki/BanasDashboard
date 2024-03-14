@@ -5,7 +5,8 @@ import { Bar, } from 'react-chartjs-2';
 import { Chart } from 'chart.js/auto';
 import { registerables } from 'chart.js';
 import dayjs from 'dayjs'
-import { Layout, Typography, Card, Row, Col, Button, Select, Table, Divider, DatePicker } from 'antd';
+import Typewriter from 'typewriter-effect';
+import { Layout, Typography, Card, Row, Col, Button, Select, Table, Modal, Divider, DatePicker } from 'antd';
 import Loader from '../Components/Loader'
 import * as XLSX from 'xlsx';
 import DynamicData from '../Components/DynamicData';
@@ -30,6 +31,9 @@ const Page = () => {
   };
 
   const [salesData, setSalesData] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalData, setModalData] = useState([])
+  const [modalTotal, setModalTotal] = useState(0);
   const [selectedArticle, setSelectedArticle] = useState('ALL');
   // const [selectedYear, setSelectedYear] = useState('2023');
   const [lobContributions, setLobContributions] = useState({});
@@ -38,6 +42,8 @@ const Page = () => {
   const [loading, setLoading] = useState(1);
   const [Qty, setTotalQty] = useState(0);
   const [articles, setShowArticles] = useState([])
+  const [showModalData, setShowModalData] = useState([])
+  const [currLob, setCurrLob] = useState('')
   const [ABV, setTotalABV] = useState(0);
   const [ASP, setTotalASP] = useState(0);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthName());
@@ -45,7 +51,9 @@ const Page = () => {
   const [lobs, setSelectedLobs] = useState([]); // Change to an array for multi-select
   const [descs, setDescs] = useState([]); // Change to an array for multi-select
   const [mains, setSelectedMains] = useState([]); // Change to an array for multi-select
+  const [loading2, setLoading2] = useState(false);
 
+ 
 
 
   const [selectedStoreType, setSelectedStoreType] = useState('ALL');
@@ -86,12 +94,62 @@ const Page = () => {
     setSelectedStore(value);
   };
 
-
+  const modalColumns = [
+    {
+      align: 'right',
+      title: 'Article No',
+      dataIndex: 'ArticleNo',
+      key: 'ArticleNo',
+    },
+    {
+      title: 'Description',
+      dataIndex: 'ArticleDesc',
+      key: 'ArticleDesc',
+    },
+    {
+      align: 'left',
+      title: 'Store Name',
+      dataIndex: 'StoreName',
+      key: 'StoreName',
+    },
+    {
+      title: 'Line of Business (LOB)',
+      align: 'left',
+      dataIndex: 'LOB',
+      key: 'LOB',
+    },
+    {
+      title: 'Year',
+      align: 'left',
+      dataIndex: 'Yr',
+      key: 'Yr',
+    },
+    {
+      title: 'Month Name',
+      align: 'left',
+      dataIndex: 'MonthName',
+      key: 'MonthName',
+    },
+    {
+      title: 'Qty',
+      dataIndex: 'Qty',
+      align: 'right',
+      key: 'Qty',
+      render: (text, item) => parseFloat(text).toFixed(2)
+    },
+    {
+      title: 'Sales Amt',
+      dataIndex: 'SalesAmt',
+      align: 'right',
+      key: 'SalesAmt',
+      render: (text, item) => parseFloat(text).toFixed(2)
+    },
+  ];
 
   useEffect(() => {
-    if(selectedStores.length == 1) {
+    if (selectedStores.length == 1) {
 
-      console.log("dataaa",selectedStores, )
+      console.log("dataaa", selectedStores,)
       const info = tableData.filter((item) => selectedStores.includes(item.StoreName))[0]
       setTotalABV(info.ABV);
       setTotalASP(info.ASP);
@@ -100,7 +158,7 @@ const Page = () => {
       setTotalSales(info.ActMTD);
       setSelectedStore(info.StoreName)
     }
-  
+
     // console.log("2")
     // if (selectedStore == 'ALL') {
     // } else {
@@ -149,6 +207,7 @@ const Page = () => {
     let groupedData = filteredArticleData;
 
     console.log("SOME SOME", filteredArticleData)
+    if(!filteredArticleData) return
     let sum = 0;
     for (let i = 0; i < filteredArticleData.length; i++) sum += filteredArticleData[i].SalesAmt;
     console.log("SOME SOME SUM", sum);
@@ -211,6 +270,73 @@ const Page = () => {
     setShowArticles(groupedData)
 
   }, [filteredArticleData])
+
+
+  useEffect(() => {
+    let groupedData = modalData;
+
+    let map = new Map();
+    const total = groupedData.reduce((acc, curr) => acc + curr.SalesAmt, 0);
+    console.log("HELL", total)
+    setModalTotal(total);
+
+    if (selectedStoreType === 'ALL') {
+      for (let i = 0; i < groupedData?.length; i++) {
+        const curr = groupedData[i];
+        const key = curr.StoreName + curr.ArticleDesc + curr.ArticleNo;
+        if (!map.has(key)) {
+          map.set(key, { ...curr, MonthName: 'All Months', StoreType: "All Store Types" }); // Initialize with MonthName as 'All Months'
+        } else {
+          const existing = map.get(key);
+          map.set(key, { ...existing, SalesAmt: existing.SalesAmt + curr.SalesAmt, Qty: existing.Qty + curr.Qty, StoreType: "All Store Types" }); // Sum up sales amounts
+        }
+      }
+    }
+    if (selectedStoreType == 'ALL') {
+      groupedData = Array.from(map.values());
+    }
+
+    //new logic end
+
+    if (selectedMonth === 'ALL') {
+      for (let i = 0; i < groupedData?.length; i++) {
+        const curr = groupedData[i];
+        const key = curr.StoreName + curr.LOB + curr.StoreType + curr.ArticleDesc + curr.ArticleNo;
+        if (!map.has(key)) {
+          map.set(key, { ...curr, MonthName: 'All Months', }); // Initialize with MonthName as 'All Months'
+        } else {
+          const existing = map.get(key);
+          map.set(key, { ...existing, SalesAmt: existing.SalesAmt + curr.SalesAmt, Qty: existing.Qty + curr.Qty, }); // Sum up sales amounts
+        }
+      }
+    }
+    if (selectedMonth == 'ALL') {
+      groupedData = Array.from(map.values());
+    }
+    map = new Map()
+    if (!selectedStores || selectedStores.length == 0) {
+      for (let i = 0; i < groupedData?.length; i++) {
+        const curr = groupedData[i];
+        const key = curr.LOB + curr.StoreType + curr.ArticleDesc + curr.ArticleNo;
+        if (!map.has(key)) {
+          map.set(key, { ...curr, StoreName: 'All Store', }); // Initialize with MonthName as 'All Months'
+        } else {
+          const existing = map.get(key);
+          map.set(key, { ...existing, SalesAmt: existing.SalesAmt + curr.SalesAmt, Qty: existing.Qty + curr.Qty, }); // Sum up sales amounts
+        }
+      }
+    }
+    console.log("MAP CONSOLE 1", map)
+
+    if (selectedStores.length == 0)
+      groupedData = Array.from(map.values());
+
+    console.log("CONFINED data", groupedData)
+
+    setShowModalData(groupedData);
+  }, [modalData])
+
+
 
   useEffect(() => {
     console.log("4")
@@ -304,8 +430,6 @@ const Page = () => {
     setFilteredData(
       salesData?.filter(
         (item) =>
-          validYearMonth(item.Yr, item.MonthName) &&
-          (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
           (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
           (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType)
       )
@@ -314,8 +438,6 @@ const Page = () => {
     setFilteredArticleData(
       articleTable?.filter(
         (item) =>
-          validYearMonth(item.Yr, item.MonthName) &&
-          (item.MonthName.trim() === selectedMonth || selectedMonth === 'ALL') &&
           (selectedStores.length === 0 || selectedStores.includes(item.StoreName)) &&
           (selectedStoreType === 'ALL' || item.StoreType === selectedStoreType) && (mains.length == 0 || mains.includes(item.MainCategory))
       )
@@ -375,6 +497,16 @@ const Page = () => {
       setLobContributions(contributions);
     }
   };
+  const handleLobClick = async (lobValue) => {
+    setLoading2(true);
+    setCurrLob(lobValue)
+    const resp = await axios.post('/api/modalQuery', { startDate, endDate, selectedStoreType, selectedStores, lobValue });
+    setLoading2(false);
+    setModalData(resp.data.message)
+    setModalVisible(true);
+  };
+
+
   const columns = [
     {
       title: 'Store Name',
@@ -386,6 +518,36 @@ const Page = () => {
       title: 'Line of Business (LOB)',
       dataIndex: 'LOB',
       key: 'LOB',
+      // Event handler for clicking on LOB value
+      onCell: (record) => {
+        return {
+          onClick: () => {
+            handleLobClick(record.LOB);
+          },
+          style: {
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease', // Smooth transition
+            ':hover': {
+              backgroundColor: 'pink', // Change color on hover
+            },
+          },
+        };
+      },
+      render: (text) => (
+        <span>
+          {loading2 ? (
+            <Typewriter
+              options={{
+                strings: [text],
+                autoStart: true,
+                loop: false,
+              }}
+            />
+          ) : (
+            text
+          )}
+        </span>
+      ),
     },
     {
       title: 'Year',
@@ -431,7 +593,7 @@ const Page = () => {
 
   const fetchData = async () => {
     setLoading(loading + 1);
-  
+
     try {
       // Replace Axios post request with fetch
       const response1 = await fetch('/api/getHomeTableData', {
@@ -441,11 +603,11 @@ const Page = () => {
         },
         body: JSON.stringify({ startDate, endDate }),
       });
-  
+
       const data1 = await response1.json();
       setSalesData(data1.data3);
       setArticleTable(data1.data4);
-  
+
       // Replace Axios post request with fetch
       const response2 = await fetch('/api/getTableData2', {
         method: 'POST',
@@ -454,7 +616,7 @@ const Page = () => {
         },
         body: JSON.stringify({ startDate, endDate }),
       });
-  
+
       const data2 = await response2.json();
       setTableData(data2.data3);
     } catch (error) {
@@ -464,7 +626,8 @@ const Page = () => {
       setLoading(loading + 1);
     }
   };
-  
+
+
 
   const transformDataForDoughnutChart = () => {
     if (!filteredData || filteredData.length === 0) {
@@ -552,15 +715,14 @@ const Page = () => {
 
     // Transform data for Excel format
     const excelData = lobTable.map((item) => {
-      `${item.StoreName}_${item.LOB}_${item.MonthName}_${item.Yr}`
-      const key = `${item.StoreName}_${item.LOB}_${item.MonthName}_${item.Yr}`;
+      `${item.StoreName}_${item.LOB}_${item.Yr}`
+      const key = `${item.StoreName}_${item.LOB}_${item.Yr}`;
       const lobContribution = lobContributions[key] || 0;
 
       return {
         'Store Name': item.StoreName,
         'Line of Business (LOB)': item.LOB,
         'Year': item.Yr,
-        'Month Name': item.MonthName,
         'Sales Amount': item.salesAmt,
         'Store Type': item.StoreType,
         'LOB Contribution (%)': lobContribution,
@@ -657,8 +819,6 @@ const Page = () => {
       'Description': item.ArticleDesc,
       'Line of Business (LOB)': item.LOB,
       'Year': item.Yr,
-      'Month Name': item.MonthName,
-      'Store Name': item.StoreName,
       'Qty': item.Qty,
       'Sales Amt': item.SalesAmt,
     }));
@@ -674,6 +834,38 @@ const Page = () => {
     const fileName = `ArticleData_${selectedMonth}_${selectedStoreType}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
+
+  const exportModalData = () => {
+    if (!showModalData || showModalData.length === 0) {
+      // console.warn('No data to export.');
+      return;
+    }
+
+    const excelData = showModalData.map((item) => ({
+      'Article No': item.ArticleNo,
+      'Description': item.ArticleDesc,
+      'Line of Business (LOB)': item.LOB,
+      'Year': item.Yr,
+      'Qty': item.Qty,
+      'Sales Amt': item.SalesAmt,
+      'Store Name': item.StoreName,
+      'Store Type': item.StoreType
+    }));
+
+    // Create a worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Create a workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'ArticleData');
+
+    // Save the workbook as an Excel file
+    const fileName = `ArticleData_${selectedMonth}_${selectedStoreType}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
+
+
 
   const transformDataForStoresBarChart = () => {
     const storeData = filteredData?.reduce((acc, item) => {
@@ -744,7 +936,31 @@ const Page = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      {/* {console.log("PIKACHUUU", process.env.NEXT_PUBLIC_DB_SERVER)} */}
+      <Modal
+        visible={modalVisible}
+        title={null}
+        onCancel={() => { setModalVisible(false) }}
+        footer={null}
+        width={1300}
+      >
+        <div style={{ marginBottom: '20px', textAlign: 'center', borderBottom: '2px solid #83ed7e', width: "20%", borderRight: '2px solid #83ed7e', borderRadius: "10px" }}>
+          <Title level={3}>{`${selectedStore == 'ALL' ? "All Stores" : selectedStore} - ${selectedMonth}`}</Title>
+        </div>
+        <Table
+          dataSource={showModalData}
+          columns={modalColumns}
+          bordered
+        />
+        <div style={{display: "flex", alignItems: 'center', justifyContent: 'space-between', marginTop: "20px"}}>
+        <Button onClick={exportModalData} type="primary" style={{  backgroundColor: '#83ed7e', color: "black" }}>
+          Export to Excel
+        </Button>
+                <Button  style={{marginLeft : "10px", background: '#83ed7e', color : 'black'}}> {`Total SalesAmt: ₹${formatIndianNumber(modalTotal)}`}</Button>
+        </div>
+    
+      </Modal>
+
+
       {loading == 1 ? <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader size='large' /></div> : <Content style={{ padding: '24px', minHeight: 'calc(100vh - 64px)', }}>
 
 
@@ -871,7 +1087,7 @@ const Page = () => {
                   <Option key={lob}>{lob}</Option>
                 ))}
               </Select> */}
-              <Select
+              {/* <Select
                 mode="multiple"
                 placeholder="All Categories"
                 style={{ minWidth: '140px', marginLeft: '20px' }}
@@ -881,7 +1097,7 @@ const Page = () => {
                 {Array.from(new Set(articles.map(item => item.LOB))).map(lob => (
                   <Option key={lob}>{lob}</Option>
                 ))}
-              </Select>
+              </Select> */}
 
 
               <Table pagination={mains.length != 1} dataSource={(selectedArticle == 'ALL' ? articles : articles.filter((item) => item.ArticleNo == selectedArticle)).filter((item) => lobs.length == 0 || lobs.includes(item.LOB)).filter((item) => mains.length == 0 || mains.includes(item.MainCategory))} style={{ marginTop: '20px' }} columns={articleColumns} bordered scroll={{ x: true }} />
